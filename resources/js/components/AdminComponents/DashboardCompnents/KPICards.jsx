@@ -1,10 +1,6 @@
 import React from "react";
-import {
-    FiDollarSign,
-    FiShoppingBag,
-    FiUsers,
-    FiTrendingUp,
-} from "react-icons/fi";
+import { FiShoppingBag, FiUsers, FiTrendingUp } from "react-icons/fi";
+import { FaBangladeshiTakaSign } from "react-icons/fa6";
 
 const StatCard = ({ title, value, icon: Icon, color, subtext }) => (
     <div className="bg-white font-poppins dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 relative overflow-hidden group hover:shadow-md transition-all">
@@ -38,7 +34,7 @@ export default function KPICards({ stats }) {
             <StatCard
                 title="Total Revenue"
                 value={formatCurrency(stats.revenue)}
-                icon={FiDollarSign}
+                icon={FaBangladeshiTakaSign}
                 color="text-green-600 bg-green-500"
             />
             <StatCard

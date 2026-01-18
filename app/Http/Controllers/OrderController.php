@@ -8,99 +8,200 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
+use Inertia\Inertia;
+
 
 class OrderController extends Controller
 {
+
+
+
+
     public function viewOrderTable(Request $request)
     {
-        // 1. Eager load 'assignee' and 'authorizer' to show names in the table
+        // 1. Start the query with relationships
         $query = Order::query()->with(['user', 'assignee', 'authorizer']);
 
-        // Search functionality
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
+        // 2. Search Filter (Wrapped in a nested closure to group OR conditions)
+        // IMPORTANT: Without the nested closure, OR logic can break other AND filters
+        $query->when($request->search, function ($q, $search) {
+            $q->where(function ($subQ) use ($search) {
+                $subQ->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('phone', 'like', "%{$search}%")
                     ->orWhere('id', 'like', "%{$search}%");
             });
-        }
+        });
 
-        // Filter by order status
-        if ($request->filled('order_status')) {
-            $query->where('order_status', $request->order_status);
-        }
+        // 3. Order Status Filter
+        $query->when($request->order_status, function ($q, $status) {
+            $q->where('order_status', $status);
+        });
 
-        // Filter by payment status
-        if ($request->filled('payment_status')) {
-            $query->where('payment_status', $request->payment_status);
-        }
+        // 4. Payment Status Filter
+        $query->when($request->payment_status, function ($q, $status) {
+            $q->where('payment_status', $status);
+        });
 
-        // Date filtering
-        if ($request->filled('date_filter')) {
-            $dateFilter = $request->date_filter;
-
-            switch ($dateFilter) {
+        // 5. Date Filtering
+        $query->when($request->date_filter, function ($q, $filter) use ($request) {
+            switch ($filter) {
                 case 'today':
-                    $query->whereDate('created_at', today());
+                    $q->whereDate('created_at', today());
                     break;
                 case 'week':
-                    $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                    $q->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
                     break;
                 case 'month':
-                    $query->whereMonth('created_at', now()->month)
+                    $q->whereMonth('created_at', now()->month)
                         ->whereYear('created_at', now()->year);
                     break;
                 case 'custom':
-                    if ($request->filled('start_date') && $request->filled('end_date')) {
-                        $query->whereBetween('created_at', [
+                    if ($request->filled(['start_date', 'end_date'])) {
+                        $q->whereBetween('created_at', [
                             $request->start_date . ' 00:00:00',
                             $request->end_date . ' 23:59:59'
                         ]);
                     }
                     break;
             }
-        }
+        });
 
-        // Sorting
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-
-        $allowedSortFields = ['created_at', 'grand_total', 'order_status', 'payment_status', 'id'];
-        if (in_array($sortBy, $allowedSortFields)) {
-            $query->orderBy($sortBy, $sortOrder);
-        }
-
-        // --- NEW FEATURE: ROLE BASED VIEW ---
-        // If User is Employee -> Show ONLY orders assigned to them
-        // If User is Admin -> Show ALL orders
+        // 6. Role Based Access Control
         if (Auth::user()->role === 'employee') {
             $query->where('assigned_to', Auth::id());
         }
 
+        // 7. Sorting
+        $allowedSortFields = ['created_at', 'grand_total', 'order_status', 'payment_status', 'id'];
+        $sortBy = in_array($request->sort_by, $allowedSortFields) ? $request->sort_by : 'created_at';
+        $sortOrder = $request->sort_order === 'asc' ? 'asc' : 'desc';
+
+        $query->orderBy($sortBy, $sortOrder);
+
+        // 8. Execute Query
         $orders = $query->paginate(10)->withQueryString();
 
-        // --- NEW FEATURE: DATA FOR BATCH ASSIGNMENT POPUP ---
-        // 1. Get list of employees to populate the dropdown
+        // --- DATA FOR DROPDOWNS / MODALS ---
+
+        // Get employees for assignment dropdown (excluding current user if needed)
         $employees = User::whereIn('role', ['employee', 'admin'])
-            ->where('id', '!=', Auth::id()) // Optional: Exclude current user?
+            ->where('id', '!=', Auth::id())
             ->select('id', 'name')
             ->get();
 
-        // 2. Count how many "Pending" orders have NO one assigned
+        // Count pending unassigned orders
         $unassignedCount = Order::where('order_status', 'pending')
             ->whereNull('assigned_to')
             ->count();
 
-        return inertia("Admin/Order/Orders", [
+        return Inertia::render("Admin/Order/Orders", [
             'orders' => $orders,
-            'filters' => $request->only(['search', 'order_status', 'payment_status', 'date_filter', 'start_date', 'end_date', 'sort_by', 'sort_order']),
-            // Pass new data to React
+            'filters' => $request->only([
+                'search',
+                'order_status',
+                'payment_status',
+                'date_filter',
+                'start_date',
+                'end_date',
+                'sort_by',
+                'sort_order'
+            ]),
             'employees' => $employees,
             'unassignedCount' => $unassignedCount,
         ]);
     }
+
+    // public function viewOrderTable(Request $request)
+    // {
+    //     // 1. Eager load 'assignee' and 'authorizer' to show names in the table
+    //     $query = Order::query()->with(['user', 'assignee', 'authorizer']);
+
+    //     // Search functionality
+    //     if ($request->filled('search')) {
+    //         $search = $request->search;
+    //         $query->where(function ($q) use ($search) {
+    //             $q->where('name', 'like', "%{$search}%")
+    //                 ->orWhere('email', 'like', "%{$search}%")
+    //                 ->orWhere('phone', 'like', "%{$search}%")
+    //                 ->orWhere('id', 'like', "%{$search}%");
+    //         });
+    //     }
+
+    //     // Filter by order status
+    //     if ($request->filled('order_status')) {
+    //         $query->where('order_status', $request->order_status);
+    //     }
+
+    //     // Filter by payment status
+    //     if ($request->filled('payment_status')) {
+    //         $query->where('payment_status', $request->payment_status);
+    //     }
+
+    //     // Date filtering
+    //     if ($request->filled('date_filter')) {
+    //         $dateFilter = $request->date_filter;
+
+    //         switch ($dateFilter) {
+    //             case 'today':
+    //                 $query->whereDate('created_at', today());
+    //                 break;
+    //             case 'week':
+    //                 $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+    //                 break;
+    //             case 'month':
+    //                 $query->whereMonth('created_at', now()->month)
+    //                     ->whereYear('created_at', now()->year);
+    //                 break;
+    //             case 'custom':
+    //                 if ($request->filled('start_date') && $request->filled('end_date')) {
+    //                     $query->whereBetween('created_at', [
+    //                         $request->start_date . ' 00:00:00',
+    //                         $request->end_date . ' 23:59:59'
+    //                     ]);
+    //                 }
+    //                 break;
+    //         }
+    //     }
+
+    //     // Sorting
+    //     $sortBy = $request->get('sort_by', 'created_at');
+    //     $sortOrder = $request->get('sort_order', 'desc');
+
+    //     $allowedSortFields = ['created_at', 'grand_total', 'order_status', 'payment_status', 'id'];
+    //     if (in_array($sortBy, $allowedSortFields)) {
+    //         $query->orderBy($sortBy, $sortOrder);
+    //     }
+
+    //     // --- NEW FEATURE: ROLE BASED VIEW ---
+    //     // If User is Employee -> Show ONLY orders assigned to them
+    //     // If User is Admin -> Show ALL orders
+    //     if (Auth::user()->role === 'employee') {
+    //         $query->where('assigned_to', Auth::id());
+    //     }
+
+    //     $orders = $query->paginate(10)->withQueryString();
+
+    //     // --- NEW FEATURE: DATA FOR BATCH ASSIGNMENT POPUP ---
+    //     // 1. Get list of employees to populate the dropdown
+    //     $employees = User::whereIn('role', ['employee', 'admin'])
+    //         ->where('id', '!=', Auth::id()) // Optional: Exclude current user?
+    //         ->select('id', 'name')
+    //         ->get();
+
+    //     // 2. Count how many "Pending" orders have NO one assigned
+    //     $unassignedCount = Order::where('order_status', 'pending')
+    //         ->whereNull('assigned_to')
+    //         ->count();
+
+    //     return inertia("Admin/Order/Orders", [
+    //         'orders' => $orders,
+    //         'filters' => $request->only(['search', 'order_status', 'payment_status', 'date_filter', 'start_date', 'end_date', 'sort_by', 'sort_order']),
+    //         // Pass new data to React
+    //         'employees' => $employees,
+    //         'unassignedCount' => $unassignedCount,
+    //     ]);
+    // }
 
     /**
      * --- NEW FEATURE: BATCH ASSIGN METHOD ---

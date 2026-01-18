@@ -89,19 +89,18 @@ export default function Orders({
 
     return (
         <div className="pb-10 font-poppins relative">
-            {/* 1. Header & Actions Section */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 mb-2">
-                {/* Filters */}
-                <div className="w-full lg:w-auto flex-1">
+            {/* ========================================================= */}
+            {/* 1. Header & Actions Section (Redesigned)                  */}
+            {/* ========================================================= */}
+            <div className="flex flex-col  justify-between items-start lg:items-center gap-4 mb-6">
+                {/* Left Side: Filters */}
+                <div className="w-full lg:flex-1">
                     <OrdersFilter
                         filters={filters}
                         employees={employees}
-                        setIsEditModalOpen={setIsAssignModalOpen}
+                        onAssignClick={() => setIsAssignModalOpen(true)}
                     />
                 </div>
-
-                {/* Manager Action: Assign Button */}
-                {/* Only show if employees list is passed (Admin/Manager check) */}
             </div>
 
             {/* 2. Table Section */}
@@ -119,7 +118,7 @@ export default function Orders({
             {/* ========================================================= */}
             {isEditModalOpen && selectedOrder && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-md overflow-hidden animation-fade-in">
+                    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up">
                         {/* Modal Header */}
                         <div className="flex justify-between items-center p-4 border-b dark:border-gray-800">
                             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -217,15 +216,16 @@ export default function Orders({
             )}
 
             {/* ========================================================= */}
-            {/*              MODAL 2: BATCH ASSIGN (NEW)                  */}
+            {/*              MODAL 2: BATCH ASSIGN                        */}
             {/* ========================================================= */}
             {isAssignModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-md overflow-hidden animation-fade-in">
+                    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up">
                         {/* Modal Header */}
                         <div className="flex justify-between items-center p-4 border-b dark:border-gray-800">
                             <h3 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-                                <FiUserPlus /> Assign Orders to Staff
+                                <FiUserPlus className="text-purple-500" />{" "}
+                                Assign Orders to Staff
                             </h3>
                             <button
                                 onClick={() => setIsAssignModalOpen(false)}
@@ -241,18 +241,14 @@ export default function Orders({
                             className="p-6 space-y-5"
                         >
                             {/* Info Banner */}
-                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-md p-3">
-                                <p className="text-sm text-blue-800 dark:text-blue-200">
+                            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-md p-3">
+                                <p className="text-sm text-purple-800 dark:text-purple-200">
                                     <span className="font-bold">
                                         Pending Unassigned Orders:{" "}
                                     </span>
                                     {unassignedCount !== undefined
                                         ? unassignedCount
                                         : "Loading..."}
-                                </p>
-                                <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
-                                    The system will automatically select the
-                                    oldest pending orders.
                                 </p>
                             </div>
 
@@ -329,7 +325,7 @@ export default function Orders({
                                         assignProcessing ||
                                         unassignedCount === 0
                                     }
-                                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
                                 >
                                     {assignProcessing
                                         ? "Assigning..."

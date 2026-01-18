@@ -25,12 +25,12 @@ function OrderDetails({ order }) {
     // Cancel Logic
     const { post, processing } = useForm();
 
-    const handleCancel = () => {
-        if (confirm("Are you sure you want to cancel this order?")) {
-            // Adjust route name as per your web.php
-            post(route("orders.cancel", order.id));
-        }
-    };
+    // const handleCancel = () => {
+    //     if (confirm("Are you sure you want to cancel this order?")) {
+    //         // Adjust route name as per your web.php
+    //         post(route("orders.cancel", order.id));
+    //     }
+    // };
 
     // Logic: Cancel available only if order is Pending AND payment is Pending
     const isOrderPending = order.order_status?.toLowerCase() === "pending";
@@ -50,7 +50,7 @@ function OrderDetails({ order }) {
 
     // Calculate Tentative Date (Example: Created + 4 days)
     const tentativeDate = new Date(
-        new Date(order.created_at).getTime() + 4 * 24 * 60 * 60 * 1000
+        new Date(order.created_at).getTime() + 4 * 24 * 60 * 60 * 1000,
     ).toLocaleDateString("en-GB"); // DD/MM/YYYY format
 
     return (
@@ -179,7 +179,7 @@ function OrderDetails({ order }) {
                         <h2 className="text-lg dark:text-[#19e738] font-semibold">
                             Product Summary
                         </h2>
-                        {canCancel && (
+                        {/* {canCancel && (
                             <button
                                 onClick={handleCancel}
                                 disabled={processing}
@@ -187,7 +187,7 @@ function OrderDetails({ order }) {
                             >
                                 Cancel Order
                             </button>
-                        )}
+                        )} */}
                     </div>
 
                     <div className="space-y-6">

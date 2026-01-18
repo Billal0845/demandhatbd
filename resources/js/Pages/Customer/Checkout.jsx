@@ -1,6 +1,8 @@
 import React from "react";
 import { Head, useForm } from "@inertiajs/react";
 import CustomerLayout from "../../Layouts/CustomerLayouts/CustomerLayout";
+import { useEffect } from "react";
+import ReactPixel from "react-facebook-pixel";
 import {
     CheckCircle,
     MapPin,
@@ -29,6 +31,18 @@ const Checkout = ({ cartItems, totals, auth }) => {
             preserveScroll: true,
         });
     };
+
+    useEffect(() => {
+        if (!cartItems || cartItems.length === 0) return;
+
+        ReactPixel.track("InitiateCheckout", {
+            currency: "BDT",
+            value: totals.grand_total, // or totals.total
+            num_items: cartItems.length,
+            content_ids: cartItems.map((item) => item.id),
+            content_type: "product",
+        });
+    }, []);
 
     return (
         <>
@@ -150,7 +164,7 @@ const Checkout = ({ cartItems, totals, auth }) => {
                                             onChange={(e) =>
                                                 setData(
                                                     "address",
-                                                    e.target.value
+                                                    e.target.value,
                                                 )
                                             }
                                             className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"

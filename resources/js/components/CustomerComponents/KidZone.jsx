@@ -6,6 +6,19 @@ import { toast } from "react-hot-toast";
 
 function KidZone({ products }) {
     const handleAddToCart = (productId) => {
+        const productToAdd = products.find((p) => p.id === productId);
+
+        // 2. Check if found (safety measure) and Track
+        if (productToAdd) {
+            ReactPixel.track("AddToCart", {
+                currency: "USD",
+                value: productToAdd.price, // Use the found object
+                content_name: productToAdd.name, // Use the found object
+                content_ids: [productToAdd.id],
+                content_type: "product",
+            });
+        }
+
         router.post(
             "/cart/add",
             {
@@ -17,7 +30,7 @@ function KidZone({ products }) {
                 onSuccess: () => {
                     toast.success("Successfully Added to Cart!");
                 },
-            }
+            },
         );
     };
 

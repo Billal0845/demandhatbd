@@ -3,10 +3,24 @@ import React from "react";
 import { Link, router } from "@inertiajs/react";
 import { BsCartPlusFill } from "react-icons/bs";
 import { toast } from "react-hot-toast";
+import ReactPixel from "react-facebook-pixel";
 
 // FIX 2: Corrected spelling from NewArraivals to NewArrivals
 function NewArrivals({ products }) {
     const handleAddToCart = (productId) => {
+        const productToAdd = products.find((p) => p.id === productId);
+
+        // 2. Check if found (safety measure) and Track
+        if (productToAdd) {
+            ReactPixel.track("AddToCart", {
+                currency: "USD",
+                value: productToAdd.price, // Use the found object
+                content_name: productToAdd.name, // Use the found object
+                content_ids: [productId],
+                content_type: "product",
+            });
+        }
+
         router.post(
             "/cart/add",
             {
@@ -18,7 +32,7 @@ function NewArrivals({ products }) {
                 onSuccess: () => {
                     toast.success("Successfully Added to Cart!");
                 },
-            }
+            },
         );
     };
 

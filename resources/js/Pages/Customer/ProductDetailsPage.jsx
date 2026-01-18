@@ -3,11 +3,22 @@ import React, { useState } from "react";
 import { ShoppingCart, CheckCircle, XCircle } from "lucide-react";
 import { router } from "@inertiajs/react";
 import { Toaster, toast } from "react-hot-toast";
+import ReactPixel from "react-facebook-pixel";
 
 function ProductDetailsPage({ product = {} }) {
     const [loading, setLoading] = useState(false);
 
     const handleAddToCart = () => {
+        // CORRECT WAY
+        ReactPixel.track("AddToCart", {
+            // <--- Changed from "Purchase"
+            currency: "USD",
+            value: product.price,
+            content_name: product.name,
+            content_ids: [product.id],
+            content_type: "product", // <--- Good to add this
+        });
+
         setLoading(true);
         router.post(
             "/cart/add",
@@ -21,7 +32,7 @@ function ProductDetailsPage({ product = {} }) {
                     setLoading(false);
                     toast.success("Successfully Added to Cart!");
                 },
-            }
+            },
         );
     };
 
@@ -105,8 +116,8 @@ function ProductDetailsPage({ product = {} }) {
                             {loading
                                 ? "Adding..."
                                 : product.stock > 0
-                                ? "Add to Cart"
-                                : "Out of Stock"}
+                                  ? "Add to Cart"
+                                  : "Out of Stock"}
                         </button>
                     </div>
                 </div>

@@ -3,9 +3,19 @@ import React from "react";
 import { Link, router } from "@inertiajs/react";
 import { BsCartPlusFill } from "react-icons/bs";
 import { toast, Toaster } from "react-hot-toast";
+import ReactPixel from "react-facebook-pixel";
 
 const ProductCard = ({ product }) => {
     const handleAddToCart = (productId) => {
+        ReactPixel.track("AddToCart", {
+            // <--- Changed from "Purchase"
+            currency: "USD",
+            value: product.price,
+            content_name: product.name,
+            content_ids: [productId],
+            content_type: "product", // <--- Good to add this
+        });
+
         router.post(
             "/cart/add",
             {
@@ -17,7 +27,7 @@ const ProductCard = ({ product }) => {
                 onSuccess: () => {
                     toast.success("Successfully Added to Cart!");
                 },
-            }
+            },
         );
     };
     return (

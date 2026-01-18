@@ -2,9 +2,21 @@ import React from "react";
 import { Link, router } from "@inertiajs/react";
 import { BsCartPlusFill } from "react-icons/bs";
 import { toast } from "react-hot-toast";
+import ReactPixel from "react-facebook-pixel";
 
 function SectionCard({ product }) {
     const handleAddToCart = (productId) => {
+        // 2. Check if found (safety measure) and Track
+
+        ReactPixel.track("AddToCart", {
+            // <--- Changed from "Purchase"
+            currency: "USD",
+            value: product.price,
+            content_name: product.name,
+            content_ids: [productId],
+            content_type: "product", // <--- Good to add this
+        });
+
         router.post(
             "/cart/add",
             {
@@ -16,7 +28,7 @@ function SectionCard({ product }) {
                 onSuccess: () => {
                     toast.success("Successfully Added to Cart!");
                 },
-            }
+            },
         );
     };
     return (

@@ -8,12 +8,8 @@ import {
     FiUserPlus,
 } from "react-icons/fi";
 
-export default function OrdersFilter({
-    filters,
-    employees,
-    setIsAssignModalOpen,
-}) {
-    console.log(employees);
+export default function OrdersFilter({ filters, employees, onAssignClick }) {
+    // State Initialization
     const [searchTerm, setSearchTerm] = useState(filters?.search || "");
     const [orderStatus, setOrderStatus] = useState(filters?.order_status || "");
     const [paymentStatus, setPaymentStatus] = useState(
@@ -24,31 +20,53 @@ export default function OrdersFilter({
     const [endDate, setEndDate] = useState(filters?.end_date || "");
     const [showFilters, setShowFilters] = useState(false);
 
-    // Debounced search
+    // Debounced search (remains the same)
     useEffect(() => {
         const timer = setTimeout(() => {
             if (searchTerm !== (filters?.search || "")) {
-                applyFilters();
+                // For search, we rely on the state because of the debounce delay
+                triggerFilterRequest({ search: searchTerm });
             }
         }, 500);
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
-    const applyFilters = () => {
+    /**
+     * CORE FIX: triggerFilterRequest
+     * This function accepts 'newValues' to override the current state.
+     * This ensures we send the value the user JUST clicked, not the old state.
+     */
+    const triggerFilterRequest = (newValues = {}) => {
         const params = {
             search: searchTerm,
             order_status: orderStatus,
             payment_status: paymentStatus,
             date_filter: dateFilter,
-            // Preserve sort params if they exist in current URL
             sort_by: filters?.sort_by,
             sort_order: filters?.sort_order,
+            ...newValues, // <--- This overrides current state with the new selection
         };
 
-        if (dateFilter === "custom" && startDate && endDate) {
-            params.start_date = startDate;
-            params.end_date = endDate;
+        // Handle Custom Date Range logic
+        // If date_filter is custom, we only send start/end if they exist
+        if ((newValues.date_filter || dateFilter) === "custom") {
+            // Only attach dates if they are set
+            if (startDate || newValues.start_date)
+                params.start_date = newValues.start_date || startDate;
+            if (endDate || newValues.end_date)
+                params.end_date = newValues.end_date || endDate;
+
+            // If custom is selected but dates are missing, don't auto-submit unless clicked "Apply"
+            if (
+                (!params.start_date || !params.end_date) &&
+                !newValues.force_submit
+            ) {
+                return;
+            }
         }
+
+        // Clean up parameters (remove force_submit helper)
+        delete params.force_submit;
 
         router.get("/admin/orders", params, {
             preserveState: true,
@@ -72,8 +90,9 @@ export default function OrdersFilter({
     };
 
     return (
-        <div className="mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="mb-2">
+            {/* Header Section */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
                         Orders
@@ -83,29 +102,33 @@ export default function OrdersFilter({
                     </p>
                 </div>
 
-                <div className="">
+                {/* Buttons Group */}
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Assign Button */}
                     {employees && (
-                        <div className="mb-5 lg:mb-0">
-                            <button
-                                onClick={() => setIsAssignModalOpen(true)}
-                                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-lg shadow-sm transition-all transform hover:scale-105"
-                            >
-                                <FiUserPlus size={18} />
-                                <span>Assign Orders</span>
-                            </button>
-                        </div>
+                        <button
+                            onClick={onAssignClick}
+                            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium shadow-sm hover:shadow-md"
+                        >
+                            <FiUserPlus size={18} />
+                            <span className="whitespace-nowrap">
+                                Assign Orders
+                            </span>
+                        </button>
                     )}
-                </div>
 
-                <button
-                    onClick={handleExportPdf}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium z-20 shadow-sm"
-                >
-                    <FiDownload size={18} />
-                    Export PDF
-                </button>
+                    {/* Export PDF Button */}
+                    <button
+                        onClick={handleExportPdf}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium shadow-sm hover:shadow-md"
+                    >
+                        <FiDownload size={18} />
+                        <span className="whitespace-nowrap">Export PDF</span>
+                    </button>
+                </div>
             </div>
 
+            {/* Filters Bar */}
             <div className="bg-white dark:bg-slate-950 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
                 <div className="flex flex-col gap-4">
                     <div className="flex gap-3">
@@ -132,12 +155,14 @@ export default function OrdersFilter({
 
                     {showFilters && (
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            {/* Order Status */}
                             <select
                                 value={orderStatus}
                                 onChange={(e) => {
-                                    setOrderStatus(e.target.value);
-                                    // Trigger immediately on select change, wrapped in timeout to allow state update
-                                    setTimeout(() => applyFilters(), 0);
+                                    const val = e.target.value;
+                                    setOrderStatus(val);
+                                    // PASS NEW VALUE DIRECTLY
+                                    triggerFilterRequest({ order_status: val });
                                 }}
                                 className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-900 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
@@ -149,11 +174,16 @@ export default function OrdersFilter({
                                 <option value="cancelled">Cancelled</option>
                             </select>
 
+                            {/* Payment Status */}
                             <select
                                 value={paymentStatus}
                                 onChange={(e) => {
-                                    setPaymentStatus(e.target.value);
-                                    setTimeout(() => applyFilters(), 0);
+                                    const val = e.target.value;
+                                    setPaymentStatus(val);
+                                    // PASS NEW VALUE DIRECTLY
+                                    triggerFilterRequest({
+                                        payment_status: val,
+                                    });
                                 }}
                                 className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-900 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
@@ -164,12 +194,18 @@ export default function OrdersFilter({
                                 <option value="refunded">Refunded</option>
                             </select>
 
+                            {/* Date Filter Type */}
                             <select
                                 value={dateFilter}
                                 onChange={(e) => {
-                                    setDateFilter(e.target.value);
-                                    if (e.target.value !== "custom")
-                                        setTimeout(() => applyFilters(), 0);
+                                    const val = e.target.value;
+                                    setDateFilter(val);
+                                    // If not custom, trigger immediately
+                                    if (val !== "custom") {
+                                        triggerFilterRequest({
+                                            date_filter: val,
+                                        });
+                                    }
                                 }}
                                 className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-900 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
@@ -190,6 +226,7 @@ export default function OrdersFilter({
                         </div>
                     )}
 
+                    {/* Custom Date Range Inputs */}
                     {showFilters && dateFilter === "custom" && (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                             <input
@@ -205,7 +242,9 @@ export default function OrdersFilter({
                                 className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-900 text-sm text-gray-700 dark:text-gray-300"
                             />
                             <button
-                                onClick={applyFilters}
+                                onClick={() =>
+                                    triggerFilterRequest({ force_submit: true })
+                                }
                                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
                             >
                                 Apply Date Range

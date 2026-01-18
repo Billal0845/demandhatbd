@@ -9,8 +9,23 @@ import HeroBanner from "../../components/CustomerComponents/HeroBanner";
 import KidZone from "../../components/CustomerComponents/KidZone";
 import Winter from "@/components/CustomerComponents/Winter";
 import Section from "@/components/CustomerComponents/Section";
+import { useEffect } from "react";
+import ReactPixel from "react-facebook-pixel";
 
 const LandingPage = ({ products = [], categories = [], heroes = [] }) => {
+    useEffect(() => {
+        if (!products || products.length === 0) return;
+
+        // Map all product IDs on the page
+        const contentIds = products.map((p) => p.id);
+
+        ReactPixel.track("ViewContent", {
+            content_ids: contentIds, // Array of product IDs
+            content_name: "Landing Page", // Optional descriptive name
+            content_type: "product", // Always good to add
+        });
+    }, [products]); // Fire when products change
+
     return (
         <>
             <Head title="Home" />

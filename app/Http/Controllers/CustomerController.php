@@ -219,7 +219,7 @@ class CustomerController extends Controller
     //     $this->moveCartToDatabase($user->id); //added while doing cart functionality
     //     $request->session()->regenerate();
 
-    //     return redirect('/dashboard');
+    //     return redirect()->intended('/dashboard');
     // }
 
     // ================= LOGIN FLOW =================
@@ -262,7 +262,7 @@ class CustomerController extends Controller
         $this->moveCartToDatabase($user->id);
         $request->session()->regenerate();
 
-        return redirect('/dashboard');
+        return redirect()->intended('/dashboard');
     }
 
     public function login(Request $request)
@@ -289,7 +289,7 @@ class CustomerController extends Controller
 
                 $user->update([
                     'otp' => $otp,
-                    'otp_expires_at' => Carbon::now()->addMinutes(10)
+                    'otp_expires_at' => Carbon::now()->addMinutes(5)
                 ]);
 
                 try {
@@ -304,7 +304,7 @@ class CustomerController extends Controller
 
             $this->moveCartToDatabase($user->id); //added while doing cart functionality
 
-            return redirect('/dashboard');
+            return redirect()->intended('/dashboard');
         }
 
         return back()->withErrors([

@@ -268,11 +268,14 @@ class CheckoutController extends Controller
     // 5. Success Page (Unchanged)
     public function success()
     {
+
         if (!session()->has('last_order_id')) {
             return redirect('/');
         }
+        $order = Order::with('items')->findOrFail(session('last_order_id'));
         return Inertia::render('Customer/OrderSuccess', [
-            'order_id' => session('last_order_id')
+            'order_id' => session('last_order_id'),
+            'order' => $order,
         ]);
     }
 

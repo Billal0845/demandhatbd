@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { Link, router, usePage } from "@inertiajs/react";
 import { BsCartPlusFill, BsFilter, BsX } from "react-icons/bs";
-import { toast } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 import FilterSidebar from "../../components/CustomerComponents/FilterSidebar";
 import CustomerLayout from "@/Layouts/CustomerLayouts/CustomerLayout";
+import ReactPixel from "react-facebook-pixel";
 
 function ProductWithCategory({ products, name }) {
     const { url } = usePage(); // Get current URL to parse query params if needed
@@ -40,7 +41,7 @@ function ProductWithCategory({ products, name }) {
                 min_price: min,
                 max_price: max,
             },
-            { preserveScroll: true, preserveState: true }
+            { preserveScroll: true, preserveState: true },
         );
     };
 
@@ -65,13 +66,26 @@ function ProductWithCategory({ products, name }) {
     };
 
     const handleAddToCart = (productId) => {
+        const productToAdd = products?.data?.find((p) => p.id === productId);
+
+        if (productToAdd) {
+            ReactPixel.track("AddToCart", {
+                currency: "USD",
+                value: productToAdd.price,
+                content_name: productToAdd.name,
+                content_ids: [productToAdd.id],
+                content_type: "product",
+            });
+        }
+
         router.post(
             "/cart/add",
             { product_id: productId, quantity: 1 },
             {
                 preserveScroll: true,
+                preserveState: true,
                 onSuccess: () => toast.success("Successfully Added to Cart!"),
-            }
+            },
         );
     };
 
@@ -82,6 +96,7 @@ function ProductWithCategory({ products, name }) {
 
     return (
         <div className="min-h-screen  py-3 transition-colors duration-300">
+            <Toaster />
             <div className="mx-auto max-w-[1200px]">
                 <div className="mx-auto mt-5 px-4 sm:px-6 lg:px-8">
                     <div className="flex  flex-col lg:flex-row gap-8">
@@ -192,7 +207,7 @@ function ProductWithCategory({ products, name }) {
                                                     ((product.price -
                                                         product.discount_price) /
                                                         product.price) *
-                                                        100
+                                                        100,
                                                 )}
                                                 %
                                             </span>
