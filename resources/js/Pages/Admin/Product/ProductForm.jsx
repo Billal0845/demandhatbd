@@ -17,6 +17,7 @@ function ProductForm({ categories = [] }) {
         weight: "",
         length: "",
         width: "",
+        bussiness_class: "",
         productDetails: "",
         image: null, // useForm handles null correctly during submission
     });
@@ -231,6 +232,35 @@ function ProductForm({ categories = [] }) {
                             {errors.stock && (
                                 <p className="mt-1 text-sm text-red-500">
                                     {errors.stock}
+                                </p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                Bussiness Class
+                            </label>
+
+                            <select
+                                name="bussiness_class"
+                                value={data.bussiness_class}
+                                onChange={handleChange}
+                                className={`bg-gray-50 dark:bg-slate-900 border ${
+                                    errors.bussiness_class
+                                        ? "border-red-500"
+                                        : "border-gray-300"
+                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
+                            >
+                                <option value="">Select Class</option>
+                                <option value="free">Free</option>
+                                <option value="normal">Normal</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+
+                            {errors.bussiness_class && (
+                                <p className="mt-1 text-sm text-red-500">
+                                    {errors.bussiness_class}
                                 </p>
                             )}
                         </div>

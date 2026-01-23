@@ -76,6 +76,8 @@ Route::middleware('auth')->group(function () {
   // Everyone who works for the company needs access to the Dashboard and basic Order Viewing
   Route::middleware(['role:admin,manager,employee'])->group(function () {
 
+    Route::get('/admin/orders/{id}/check-fraud', [OrderController::class, 'checkFraud'])->name('admin.orders.fraud_check');
+
     // Main Dashboard (Controller should adjust view based on role if needed)
     Route::get('/admin', [AdminController::class, 'dashboard']);
 

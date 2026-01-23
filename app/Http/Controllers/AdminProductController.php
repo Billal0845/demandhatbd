@@ -43,6 +43,8 @@ class AdminProductController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072',
             'quick_view' => 'nullable|string',
             'short_description' => 'nullable|string',
+            'bussiness_class' => 'required|in:free,normal,medium,high',
+
         ]);
 
         // 1. Handle Image Upload
@@ -79,6 +81,7 @@ class AdminProductController extends Controller
             'image' => $imagePath,
             'quick_view' => $validated['quick_view'],
             'short_description' => $validated['short_description'],
+            'bussiness_class' => $validated['bussiness_class'],
         ]);
 
         return redirect()->to('/admin/products')->with('success', 'Product created successfully!');
@@ -114,6 +117,7 @@ class AdminProductController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072',
             'quick_view' => 'nullable|string',
             'short_description' => 'nullable|string',
+            'bussiness_class' => 'required|in:free,normal,medium,high',
         ]);
 
         // 1. Handle Image
@@ -143,6 +147,7 @@ class AdminProductController extends Controller
         $product->description = $validated['productDetails'];
         $product->quick_view = $validated['quick_view'];
         $product->short_description = $validated['short_description'];
+        $product->bussiness_class = $validated['bussiness_class'];
 
         $product->save();
 

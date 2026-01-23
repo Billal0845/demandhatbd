@@ -5,6 +5,8 @@ import OrdersFilter from "../../../components/AdminComponents/OrdersFilter";
 import OrdersTable from "../../../components/AdminComponents/OrdersTable";
 import Pagination from "../../../components/AdminComponents/Pagination";
 import { FiX, FiUserPlus } from "react-icons/fi";
+import axios from "axios";
+import FraudCheckModal from "../../../components/AdminComponents/FraudCheckModal";
 
 export default function Orders({
     orders,
@@ -12,18 +14,36 @@ export default function Orders({
     employees,
     unassignedCount,
 }) {
-    // --- STATE MANAGEMENT ---
-
-    // Edit Status Modal State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
 
-    // Assignment Modal State
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
-    // --- FORMS ---
+    // Fraud Check Modal State
+    const [isFraudModalOpen, setIsFraudModalOpen] = useState(false);
+    const [fraudData, setFraudData] = useState(null);
+    const [isFraudLoading, setIsFraudLoading] = useState(false);
+    const [checkingPhone, setCheckingPhone] = useState("");
 
-    // 1. Form for updating order status (Individual)
+    const handleCheckFraud = async (order) => {
+        setCheckingPhone(order.phone);
+        setIsFraudModalOpen(true);
+        setIsFraudLoading(true);
+        setFraudData(null);
+
+        try {
+            const response = await axios.get(
+                `/admin/orders/${order.id}/check-fraud`,
+            );
+            setFraudData(response.data);
+        } catch (error) {
+            console.error("Fraud check failed", error);
+            setFraudData({ status: "error", error: "Connection Failed" });
+        } finally {
+            setIsFraudLoading(false);
+        }
+    };
+
     const {
         data: editData,
         setData: setEditData,
@@ -108,6 +128,7 @@ export default function Orders({
                 orders={orders}
                 filters={filters}
                 onEditStatus={openEditModal}
+                onCheckFraud={handleCheckFraud}
             />
 
             {/* 3. Pagination Section */}
@@ -336,6 +357,14 @@ export default function Orders({
                     </div>
                 </div>
             )}
+
+            <FraudCheckModal
+                isOpen={isFraudModalOpen}
+                onClose={() => setIsFraudModalOpen(false)}
+                data={fraudData}
+                isLoading={isFraudLoading}
+                phone={checkingPhone}
+            />
         </div>
     );
 }

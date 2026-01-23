@@ -6,9 +6,15 @@ import {
     FiEye,
     FiChevronUp,
     FiChevronDown,
+    FiShield,
 } from "react-icons/fi";
 
-export default function OrdersTable({ orders, filters, onEditStatus }) {
+export default function OrdersTable({
+    orders,
+    filters,
+    onEditStatus,
+    onCheckFraud,
+}) {
     const sortBy = filters?.sort_by || "created_at";
     const sortOrder = filters?.sort_order || "desc";
 
@@ -204,6 +210,14 @@ export default function OrdersTable({ orders, filters, onEditStatus }) {
                                 </td>
                                 <td className="p-2 py-2 text-right">
                                     <div className="flex justify-end gap-2">
+                                        <button
+                                            onClick={() => onCheckFraud(order)}
+                                            className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800 text-red-600 dark:text-red-400 transition-colors"
+                                            title="Check Fraud Risks"
+                                        >
+                                            <FiShield size={16} />
+                                        </button>
+
                                         <Link
                                             href={`/admin/orders/${order.id}/details`}
                                             className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800 text-green-600 dark:text-green-400 transition-colors"

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+use Illuminate\Support\Facades\Http;
 
 use Illuminate\Http\Request;
 use App\Models\Order;
@@ -13,6 +14,34 @@ use Inertia\Inertia;
 
 class OrderController extends Controller
 {
+
+    public function checkFraud($id)
+    {
+        $order = Order::findOrFail($id);
+
+        // Clean the phone number (remove spaces, - etc) if necessary
+        $phone = $order->phone;
+
+        // Call the BD Courier API
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('BD_COURIER_API_KEY'),
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ])->post('https://api.bdcourier.com/courier-check', [
+                    'phone' => $phone
+                ]);
+
+        // Return the data to React
+        if ($response->successful()) {
+            return response()->json($response->json());
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to connect to fraud database',
+            'details' => $response->body()
+        ], 500);
+    }
 
 
 

@@ -20,6 +20,7 @@ const Checkout = ({ cartItems, totals, auth }) => {
         email: auth.user?.email || "",
         phone: auth.user?.phone || "",
         address: auth.user?.address || "",
+        delivery_area: "", // Default selection
         payment_method: "cod", // Default selection
     });
 
@@ -149,10 +150,69 @@ const Checkout = ({ cartItems, totals, auth }) => {
                                     )}
                                 </div>
 
+                                {/* Delivery Area */}
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Delivery Area
+                                    </label>
+
+                                    <div className="flex gap-6 pl-1">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="delivery_area"
+                                                value="inside_dhaka"
+                                                checked={
+                                                    data.delivery_area ===
+                                                    "inside_dhaka"
+                                                }
+                                                onChange={(e) =>
+                                                    setData(
+                                                        "delivery_area",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                Inside Dhaka
+                                            </span>
+                                        </label>
+
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="delivery_area"
+                                                value="outside_dhaka"
+                                                checked={
+                                                    data.delivery_area ===
+                                                    "outside_dhaka"
+                                                }
+                                                onChange={(e) =>
+                                                    setData(
+                                                        "delivery_area",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                Outside Dhaka
+                                            </span>
+                                        </label>
+                                    </div>
+
+                                    {errors.delivery_area && (
+                                        <p className="text-red-500 text-xs mt-1">
+                                            {errors.delivery_area}
+                                        </p>
+                                    )}
+                                </div>
+
                                 {/* Address Input */}
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Delivery Address
+                                        Full Delivery Address
                                     </label>
                                     <div className="relative">
                                         <div className="absolute top-3 left-3 pointer-events-none text-gray-400">

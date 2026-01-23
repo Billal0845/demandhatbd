@@ -25,6 +25,7 @@ class Product extends Model
         'quick_view',
         'short_description',
         'sku',
+        'bussiness_class',
     ];
 
     // Relationship with Category
