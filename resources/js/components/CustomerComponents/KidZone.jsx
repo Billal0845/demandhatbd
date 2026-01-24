@@ -8,6 +8,11 @@ function KidZone({ products }) {
     const handleAddToCart = (productId) => {
         const productToAdd = products.find((p) => p.id === productId);
 
+        if (productToAdd.stock <= 0) {
+            toast.error("Sorry, this item is currently out of stock.");
+            return;
+        }
+
         // 2. Check if found (safety measure) and Track
         if (productToAdd) {
             ReactPixel.track("AddToCart", {

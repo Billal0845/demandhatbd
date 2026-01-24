@@ -22,7 +22,7 @@ const Cart = ({ cartItems = [], totals = {} }) => {
                 onFinish: () => {
                     setProcessingId(null);
                 },
-            }
+            },
         );
     };
 
@@ -112,7 +112,7 @@ const Cart = ({ cartItems = [], totals = {} }) => {
                                                             updateQuantity(
                                                                 item.id,
                                                                 item.quantity -
-                                                                    1
+                                                                    1,
                                                             )
                                                         }
                                                         className="p-2 hover:bg-gray-50 dark:hover:bg-[#374151] text-gray-600 dark:text-[#D1D5DB] transition-colors"
@@ -127,7 +127,7 @@ const Cart = ({ cartItems = [], totals = {} }) => {
                                                             updateQuantity(
                                                                 item.id,
                                                                 item.quantity +
-                                                                    1
+                                                                    1,
                                                             )
                                                         }
                                                         className="p-2 hover:bg-gray-50 dark:hover:bg-[#374151] text-gray-600 dark:text-[#D1D5DB] transition-colors"
@@ -157,8 +157,10 @@ const Cart = ({ cartItems = [], totals = {} }) => {
                         {/* RIGHT COLUMN: Sidebar */}
                         <div className="w-full lg:w-1/3 flex flex-col gap-6">
                             <div className="bg-white dark:bg-[#1F2937] rounded-xl font-poppins  shadow-sm border border-[#56c13e]  p-6">
-                                <h3 className="font-bold text-lg text-gray-900 dark:text-[#F9FAFB] mb-4">
-                                    Total
+                                <h3 className="font-medium text-lg text-gray-900 dark:text-[#F9FAFB] mb-4">
+                                    <span className="text-red-500">
+                                        (Without Delivery Fee)
+                                    </span>
                                 </h3>
 
                                 <div className="space-y-3 pb-4 border-b border-gray-100 dark:border-[#374151]">
@@ -171,7 +173,7 @@ const Cart = ({ cartItems = [], totals = {} }) => {
                                             {totals.itemTotal?.toLocaleString()}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between text-gray-600 dark:text-[#D1D5DB]">
+                                    {/* <div className="flex justify-between text-gray-600 dark:text-[#D1D5DB]">
                                         <span className="font-medium">
                                             Delivery
                                         </span>
@@ -179,17 +181,17 @@ const Cart = ({ cartItems = [], totals = {} }) => {
                                             TK{" "}
                                             {totals.delivery?.toLocaleString()}
                                         </span>
-                                    </div>
+                                    </div> */}
                                 </div>
 
-                                <div className="flex justify-between items-center py-4">
+                                {/* <div className="flex justify-between items-center py-4">
                                     <span className="font-bold text-lg text-gray-900 dark:text-[#F9FAFB]">
                                         Grand Total
                                     </span>
                                     <span className="font-bold text-xl text-gray-900 dark:text-[#F9FAFB]">
                                         TK {totals.grandTotal?.toLocaleString()}
                                     </span>
-                                </div>
+                                </div> */}
 
                                 <Link
                                     href="/checkout"

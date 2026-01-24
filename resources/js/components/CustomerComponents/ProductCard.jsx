@@ -7,6 +7,11 @@ import ReactPixel from "react-facebook-pixel";
 
 const ProductCard = ({ product }) => {
     const handleAddToCart = (productId) => {
+        if (product.stock <= 0) {
+            toast.error("Sorry, this item is currently out of stock.");
+            return;
+        }
+
         ReactPixel.track("AddToCart", {
             // <--- Changed from "Purchase"
             currency: "USD",

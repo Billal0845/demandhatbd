@@ -6,7 +6,7 @@ use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
-use App\Services\BkashPaymentService; // <--- ADD THIS IMPORT
+use App\Services\BkashPaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +16,7 @@ use Stripe\Checkout\Session;
 
 class CheckoutController extends Controller
 {
-    // 1. Show Checkout Page (Unchanged)
+    // 1. Show Checkout Page
     public function index()
     {
         $cartData = $this->getCartData();
@@ -40,21 +40,33 @@ class CheckoutController extends Controller
         ]);
     }
 
-    // 2. Place Order (UPDATED with bKash)
+    // 2. Place Order (UPDATED)
     public function store(Request $request)
     {
-        // 1. Validate Input
+
+        // 1. Validate Input (Added delivery_area)
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'phone' => ['required', 'string', 'regex:/^(013|014|015|016|017|018|019)[0-9]{8}$/'],
             'address' => 'required|string|max:500',
+            'delivery_area' => 'required|in:inside_dhaka,outside_dhaka', // <--- IMPORTANT
             'payment_method' => 'required|in:cod,stripe,bkash,nagad',
         ]);
 
         $cartData = $this->getCartData();
         $items = $cartData['items'];
-        $totals = $cartData['totals'];
+
+        // --- LOGIC FIX START ---
+        // Recalculate totals based on the selected Delivery Area
+        $deliveryFee = $this->calculateDeliveryFee($items, $request->delivery_area);
+
+        $totals = [
+            'itemTotal' => $cartData['totals']['itemTotal'],
+            'delivery' => $deliveryFee,
+            'grandTotal' => $cartData['totals']['itemTotal'] + $deliveryFee
+        ];
+        // --- LOGIC FIX END ---
 
         if (count($items) === 0) {
             return redirect('/cart')->withErrors(['cart' => 'Cart is empty']);
@@ -69,6 +81,8 @@ class CheckoutController extends Controller
                     'email' => $request->email,
                     'phone' => $request->phone,
                     'address' => $request->address,
+                    // Save the selected area to DB if you have a column for it, otherwise skip
+                    // 'delivery_area' => $request->delivery_area, 
                     'subtotal' => $totals['itemTotal'],
                     'delivery_fee' => $totals['delivery'],
                     'grand_total' => $totals['grandTotal'],
@@ -97,7 +111,6 @@ class CheckoutController extends Controller
                     }
                 }
 
-                // C. Handle Logic
                 if ($request->payment_method === 'cod') {
                     $this->clearCart();
                     session()->flash('last_order_id', $order->id);
@@ -109,12 +122,10 @@ class CheckoutController extends Controller
 
             // --- REDIRECTION LOGIC ---
 
-            // 1. COD Redirect
             if ($result['type'] === 'cod') {
                 return redirect()->route('checkout.success');
             }
 
-            // 2. Stripe Redirect
             if ($result['type'] === 'prepaid' && $request->payment_method === 'stripe') {
                 Stripe::setApiKey(env('STRIPE_SECRET'));
 
@@ -130,6 +141,7 @@ class CheckoutController extends Controller
                     ];
                 }
 
+                // Add the Calculated Delivery Fee
                 if ($totals['delivery'] > 0) {
                     $lineItems[] = [
                         'price_data' => [
@@ -152,11 +164,8 @@ class CheckoutController extends Controller
                 return Inertia::location($session->url);
             }
 
-            // 3. bKash Redirect (NEW LOGIC)
             if ($result['type'] === 'prepaid' && $request->payment_method === 'bkash') {
                 $bkashService = new BkashPaymentService();
-
-                // We append the order_id here so we can retrieve it in the callback
                 $callbackUrl = route('checkout.bkash.callback') . '?order_id=' . $result['order_id'];
 
                 $bkashResponse = $bkashService->createPayment(
@@ -166,7 +175,6 @@ class CheckoutController extends Controller
                 );
 
                 if (isset($bkashResponse['bkashURL'])) {
-                    // Force external redirect to bKash
                     return Inertia::location($bkashResponse['bkashURL']);
                 } else {
                     throw new \Exception('bKash Error: ' . ($bkashResponse['statusMessage'] ?? 'Unknown error'));
@@ -178,10 +186,52 @@ class CheckoutController extends Controller
         }
     }
 
+    // --- NEW HELPER: Calculate Fee (Matches Frontend Logic) ---
+    private function calculateDeliveryFee($items, $area)
+    {
+        $hasHigh = false;
+        $highQty = 0;
+        $hasMedium = false;
+        $mediumQty = 0;
+        $hasNormal = false;
+
+        foreach ($items as $item) {
+            // Ensure we handle null/empty class as 'normal'
+            $class = strtolower($item['bussiness_class'] ?? 'normal');
+
+            if ($class === 'high') {
+                $hasHigh = true;
+                $highQty += $item['quantity'];
+            } elseif ($class === 'medium') {
+                $hasMedium = true;
+                $mediumQty += $item['quantity'];
+            } elseif ($class === 'normal') {
+                $hasNormal = true;
+            }
+        }
+
+        // Priority 1: High
+        if ($hasHigh) {
+            return ($area === 'inside_dhaka') ? ($highQty * 300) : ($highQty * 500);
+        }
+
+        // Priority 2: Medium
+        if ($hasMedium) {
+            return ($area === 'inside_dhaka') ? ($mediumQty * 150) : ($mediumQty * 250);
+        }
+
+        // Priority 3: Normal
+        if ($hasNormal) {
+            return ($area === 'inside_dhaka') ? 60 : 120;
+        }
+
+        // Priority 4: Free
+        return 0;
+    }
+
     // 3. Stripe Success Callback (Unchanged)
     public function stripeSuccess(Request $request)
     {
-        // ... (Keep your exact existing stripeSuccess logic here) ...
         $sessionId = $request->get('session_id');
         $orderId = $request->get('order_id');
 
@@ -211,14 +261,13 @@ class CheckoutController extends Controller
         return redirect()->route('checkout.index')->withErrors(['error' => 'Payment not completed.']);
     }
 
-    // 4. bKash Callback (NEW METHOD)
+    // 4. bKash Callback
     public function bkashCallback(Request $request)
     {
         $status = $request->input('status');
         $paymentId = $request->input('paymentID');
         $orderId = $request->input('order_id');
 
-        // 1. Handle SUCCESS case
         if ($status === 'success') {
             try {
                 $bkashService = new BkashPaymentService();
@@ -238,7 +287,6 @@ class CheckoutController extends Controller
                         return redirect()->route('checkout.success');
                     }
                 } else {
-                    // Payment Execution Failed (Even if status was success)
                     $this->cleanupFailedOrder($orderId);
                     return redirect()->route('checkout.index')
                         ->withErrors(['error' => 'bKash Verification Failed: ' . ($executeData['statusMessage'] ?? 'Unknown')]);
@@ -250,25 +298,20 @@ class CheckoutController extends Controller
             }
         }
 
-        // 2. Handle CANCEL/FAILURE case (Wrong PIN, User closed window)
         $this->cleanupFailedOrder($orderId);
-
-        return redirect()->route('checkout.index')->withErrors(['error' => 'Payment Cancelled or Failed. Please try again.']);
+        return redirect()->route('checkout.index')->withErrors(['error' => 'Payment Cancelled or Failed.']);
     }
 
-    // --- Add this Helper method at the bottom of your Controller ---
     private function cleanupFailedOrder($orderId)
     {
         if ($orderId) {
-            // Delete the order so it doesn't stay as "Pending" in the database
             Order::where('id', $orderId)->where('payment_status', 'pending')->delete();
         }
     }
 
-    // 5. Success Page (Unchanged)
+    // 5. Success Page
     public function success()
     {
-
         if (!session()->has('last_order_id')) {
             return redirect('/');
         }
@@ -279,7 +322,6 @@ class CheckoutController extends Controller
         ]);
     }
 
-    // Helper: Clear Cart (Refactored to avoid code duplication)
     private function clearCart()
     {
         if (Auth::check()) {
@@ -289,13 +331,12 @@ class CheckoutController extends Controller
         }
     }
 
-    // Helper: Get Cart Data (Unchanged)
     private function getCartData()
     {
-        // ... (Keep your exact existing getCartData logic here) ...
         $cartItems = [];
         $subtotal = 0;
 
+        // Fetch Logic (Simplified for brevity, keep your existing fetch logic)
         if (Auth::check()) {
             $dbCart = Cart::with('product')->where('user_id', Auth::id())->get();
             foreach ($dbCart as $item) {
@@ -307,6 +348,7 @@ class CheckoutController extends Controller
                         'image' => '/storage/' . $item->product->image,
                         'price' => (float) $price,
                         'quantity' => $item->quantity,
+                        'bussiness_class' => $item->product->bussiness_class, // Keep existing typo if DB has it
                     ];
                     $subtotal += $price * $item->quantity;
                 }
@@ -323,19 +365,21 @@ class CheckoutController extends Controller
                         'image' => '/storage/' . $product->image,
                         'price' => (float) $product->price,
                         'quantity' => $qty,
+                        'bussiness_class' => $product->bussiness_class,
                     ];
                     $subtotal += $product->price * $qty;
                 }
             }
         }
 
-        $delivery = $subtotal > 0 ? 60 : 0;
+        // Return 0 for initial delivery. The Frontend React calc handles the display,
+        // and the Store method handles the final database value.
         return [
             'items' => $cartItems,
             'totals' => [
                 'itemTotal' => round($subtotal, 2),
-                'delivery' => $delivery,
-                'grandTotal' => round($subtotal + $delivery, 2)
+                'delivery' => 0,
+                'grandTotal' => round($subtotal, 2)
             ]
         ];
     }

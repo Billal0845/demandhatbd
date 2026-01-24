@@ -1,7 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Head, useForm } from "@inertiajs/react";
 import CustomerLayout from "../../Layouts/CustomerLayouts/CustomerLayout";
-import { useEffect } from "react";
 import ReactPixel from "react-facebook-pixel";
 import {
     CheckCircle,
@@ -20,30 +19,120 @@ const Checkout = ({ cartItems, totals, auth }) => {
         email: auth.user?.email || "",
         phone: auth.user?.phone || "",
         address: auth.user?.address || "",
-        delivery_area: "", // Default selection
-        payment_method: "cod", // Default selection
+        delivery_area: "",
+        payment_method: "cod",
     });
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        // Submit to backend.
-        // If 'stripe' is selected, the backend will handle the external redirect.
-        post("/checkout", {
-            preserveScroll: true,
-        });
+    // Local state for dynamic calculation
+    const [summary, setSummary] = useState({
+        deliveryFee: 0,
+        grandTotal: totals.grand_total || 0, // Fallback to initial total
+    });
+
+    // Add this inside your Checkout component (before return)
+    // useEffect(() => {
+    //     if (Object.keys(errors).length > 0) {
+    //         console.error("Form Errors:", errors);
+    //         // This will alert you if there is a hidden error
+    //         alert(
+    //             "Error: " +
+    //                 (errors.error || errors.cart || JSON.stringify(errors)),
+    //         );
+    //     }
+    // }, [errors]);
+
+    // --- LOGIC: Delivery Fee Calculation ---
+    const calculateDeliveryFee = (area, items) => {
+        if (!area || !items || items.length === 0) return 0;
+
+        // 1. Separate items by class
+        // Note: Ensure your backend passes 'bussiness_class' directly in cartItems
+        const highItems = items.filter(
+            (item) => item.bussiness_class === "high",
+        );
+        const mediumItems = items.filter(
+            (item) => item.bussiness_class === "medium",
+        );
+        const normalItems = items.filter(
+            (item) => item.bussiness_class === "normal",
+        );
+
+        // Priority 1: High Class
+        // Logic: Ignore others. Fee = Total High Qty * Rate
+        if (highItems.length > 0) {
+            const totalHighQty = highItems.reduce(
+                (sum, item) => sum + item.quantity,
+                0,
+            );
+            if (area === "inside_dhaka") return totalHighQty * 300;
+            if (area === "outside_dhaka") return totalHighQty * 500;
+        }
+
+        // Priority 2: Medium Class
+        // Logic: Ignore Normal. Fee = Total Medium Qty * Rate
+        if (mediumItems.length > 0) {
+            const totalMediumQty = mediumItems.reduce(
+                (sum, item) => sum + item.quantity,
+                0,
+            );
+            if (area === "inside_dhaka") return totalMediumQty * 150;
+            if (area === "outside_dhaka") return totalMediumQty * 250;
+        }
+
+        // Priority 3: Normal Class
+        // Logic: Flat rate regardless of quantity
+        if (normalItems.length > 0) {
+            if (area === "inside_dhaka") return 60;
+            if (area === "outside_dhaka") return 120;
+        }
+
+        // Priority 4: Free Class (or default fallthrough)
+        return 0;
     };
 
+    // --- EFFECT: Update Summary when Area or Items change ---
+    useEffect(() => {
+        const fee = calculateDeliveryFee(data.delivery_area, cartItems);
+
+        // Use 'totals.itemTotal' (subtotal) from props, add new fee
+        // Ensure totals.itemTotal is a number. Remove commas if it's a string like "1,200"
+        const subTotal =
+            typeof totals.itemTotal === "string"
+                ? parseFloat(totals.itemTotal.replace(/,/g, ""))
+                : totals.itemTotal;
+
+        setSummary({
+            deliveryFee: fee,
+            grandTotal: subTotal + fee,
+        });
+    }, [data.delivery_area, cartItems, totals.itemTotal]);
+
+    // --- EFFECT: Facebook Pixel ---
     useEffect(() => {
         if (!cartItems || cartItems.length === 0) return;
 
         ReactPixel.track("InitiateCheckout", {
             currency: "BDT",
-            value: totals.grand_total, // or totals.total
+            value: totals.grand_total,
             num_items: cartItems.length,
             content_ids: cartItems.map((item) => item.id),
             content_type: "product",
         });
     }, []);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        // Optional: Validate delivery area is selected
+        if (!data.delivery_area) {
+            alert("Please select a delivery area.");
+            return;
+        }
+
+        post("/checkout", {
+            preserveScroll: true,
+        });
+    };
 
     return (
         <>
@@ -153,7 +242,8 @@ const Checkout = ({ cartItems, totals, auth }) => {
                                 {/* Delivery Area */}
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Delivery Area
+                                        Delivery Area{" "}
+                                        <span className="text-red-500">*</span>
                                     </label>
 
                                     <div className="flex gap-6 pl-1">
@@ -312,7 +402,6 @@ const Checkout = ({ cartItems, totals, auth }) => {
                                     </div>
                                 </label>
 
-                                {/* Option 3: Mobile Banking (Disabled) */}
                                 {/* Option 3: bKash */}
                                 <label
                                     className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all flex items-center gap-4 ${
@@ -333,7 +422,6 @@ const Checkout = ({ cartItems, totals, auth }) => {
                                         }
                                         className="text-pink-600 focus:ring-pink-500 w-5 h-5"
                                     />
-                                    {/* bKash Icon / Logo Area */}
                                     <div className="p-2 bg-pink-100 rounded-full text-pink-600">
                                         <Smartphone size={24} />
                                     </div>
@@ -370,7 +458,7 @@ const Checkout = ({ cartItems, totals, auth }) => {
                                     >
                                         <div className="w-12 h-12 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
                                             <img
-                                                src={item.image} // Ensure backend sends 'image' URL
+                                                src={item.image}
                                                 alt={item.name}
                                                 className="w-full h-full object-cover"
                                             />
@@ -379,10 +467,26 @@ const Checkout = ({ cartItems, totals, auth }) => {
                                             <h4 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">
                                                 {item.name}
                                             </h4>
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                Qty: {item.quantity} ×{" "}
-                                                {item.price}
-                                            </p>
+                                            <div className="flex justify-between items-start">
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Qty: {item.quantity} ×{" "}
+                                                    {item.price}
+                                                </p>
+                                                {/* Optional: Show class badge for debug/user clarity */}
+                                                <span
+                                                    className={`text-[10px] px-1.5 py-0.5 rounded uppercase ${
+                                                        item.bussiness_class ===
+                                                        "high"
+                                                            ? "bg-red-100 text-red-600"
+                                                            : item.bussiness_class ===
+                                                                "medium"
+                                                              ? "bg-orange-100 text-orange-600"
+                                                              : "bg-gray-100 text-gray-600"
+                                                    }`}
+                                                >
+                                                    {item.bussiness_class}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div className="text-sm font-bold text-gray-900 dark:text-white">
                                             TK{" "}
@@ -404,8 +508,15 @@ const Checkout = ({ cartItems, totals, auth }) => {
                                 </div>
                                 <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
                                     <span>Delivery Fee</span>
-                                    <span className="font-semibold text-gray-900 dark:text-white">
-                                        TK {totals.delivery?.toLocaleString()}
+                                    <span
+                                        className={`font-semibold ${summary.deliveryFee === 0 ? "text-green-500" : "text-gray-900 dark:text-white"}`}
+                                    >
+                                        {summary.deliveryFee === 0 &&
+                                        data.delivery_area
+                                            ? "Free"
+                                            : `TK ${summary.deliveryFee.toLocaleString()}`}
+                                        {!data.delivery_area &&
+                                            " (Select Area)"}
                                     </span>
                                 </div>
                             </div>
@@ -416,7 +527,7 @@ const Checkout = ({ cartItems, totals, auth }) => {
                                     Total Amount
                                 </span>
                                 <span className="font-bold text-xl text-blue-600">
-                                    TK {totals.grandTotal?.toLocaleString()}
+                                    TK {summary.grandTotal.toLocaleString()}
                                 </span>
                             </div>
 

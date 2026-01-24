@@ -7,18 +7,20 @@ import ReactPixel from "react-facebook-pixel";
 
 function Winter({ products }) {
     const handleAddToCart = (productId) => {
-        const productToAdd = products.find((p) => p.id === productId);
+        const product = products.find((p) => p.id === productId);
 
-        // 2. Check if found (safety measure) and Track
-        if (productToAdd) {
-            ReactPixel.track("AddToCart", {
-                currency: "USD",
-                value: productToAdd.price, // Use the found object
-                content_name: productToAdd.name, // Use the found object
-                content_ids: [productToAdd.id],
-                content_type: "product",
-            });
+        if (product.stock <= 0) {
+            toast.error("Sorry, this item is currently out of stock.");
+            return;
         }
+
+        ReactPixel.track("AddToCart", {
+            currency: "BDT",
+            value: product.price,
+            content_name: product.name,
+            content_ids: [productId],
+            content_type: "product",
+        });
 
         router.post(
             "/cart/add",
@@ -30,6 +32,11 @@ function Winter({ products }) {
                 preserveScroll: true,
                 onSuccess: () => {
                     toast.success("Successfully Added to Cart!");
+                },
+                onError: (errors) => {
+                    if (errors.error) {
+                        toast.error(errors.error);
+                    }
                 },
             },
         );

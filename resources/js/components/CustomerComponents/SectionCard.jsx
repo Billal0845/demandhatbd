@@ -6,15 +6,17 @@ import ReactPixel from "react-facebook-pixel";
 
 function SectionCard({ product }) {
     const handleAddToCart = (productId) => {
-        // 2. Check if found (safety measure) and Track
+        if (product.stock <= 0) {
+            toast.error("Sorry, this item is currently out of stock.");
+            return;
+        }
 
         ReactPixel.track("AddToCart", {
-            // <--- Changed from "Purchase"
-            currency: "USD",
+            currency: "BDT",
             value: product.price,
             content_name: product.name,
             content_ids: [productId],
-            content_type: "product", // <--- Good to add this
+            content_type: "product",
         });
 
         router.post(
@@ -28,9 +30,15 @@ function SectionCard({ product }) {
                 onSuccess: () => {
                     toast.success("Successfully Added to Cart!");
                 },
+                onError: (errors) => {
+                    if (errors.error) {
+                        toast.error(errors.error);
+                    }
+                },
             },
         );
     };
+
     return (
         <>
             <div

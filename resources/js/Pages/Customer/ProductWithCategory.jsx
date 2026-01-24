@@ -67,6 +67,10 @@ function ProductWithCategory({ products, name }) {
 
     const handleAddToCart = (productId) => {
         const productToAdd = products?.data?.find((p) => p.id === productId);
+        if (productToAdd.stock <= 0) {
+            toast.error("Sorry, this item is currently out of stock.");
+            return;
+        }
 
         if (productToAdd) {
             ReactPixel.track("AddToCart", {
