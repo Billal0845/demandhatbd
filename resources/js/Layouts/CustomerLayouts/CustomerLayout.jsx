@@ -4,6 +4,8 @@ import CustomerSidebar from "../../components/CustomerComponents/CustomerSidebar
 import Footer from "../../components/CustomerComponents/Footer";
 import { FaWhatsapp } from "react-icons/fa";
 import { Link } from "@inertiajs/react";
+import Marqueee from "@/components/CustomerComponents/Marqueee";
+import SearchSection from "@/components/CustomerComponents/SearchSection";
 
 export default function CustomerLayout({ children }) {
     const [isDarkMode, setIsDarkMode] = useState(false);
@@ -38,6 +40,8 @@ export default function CustomerLayout({ children }) {
                 isOpen={isSidebarOpen}
                 onClose={() => setSidebarOpen(false)}
             />
+
+            <Marqueee />
 
             <CustomerNavbar
                 onToggleSidebar={() => setSidebarOpen(true)}

@@ -13,6 +13,7 @@ module.exports = {
                 delius: ['"Delius"', ...defaultTheme.fontFamily.sans],
                 inter: ["Inter", "sans-serif"],
                 work: ["Work Sans", "sans-serif"],
+                hindSiliguri: ['"Hind Siliguri"', "sans-serif"],
             },
             borderRadius: {
                 lg: "var(--radius)",

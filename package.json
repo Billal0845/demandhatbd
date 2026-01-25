@@ -19,6 +19,7 @@
     },
     "dependencies": {
         "@fontsource/delius": "^5.2.7",
+        "@fontsource/hind-siliguri": "^5.2.7",
         "@fontsource/inter": "^5.2.8",
         "@fontsource/poppins": "^5.2.7",
         "@fontsource/work-sans": "^5.2.8",
@@ -27,6 +28,7 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "date-fns": "^4.1.0",
+        "lodash": "^4.17.23",
         "lucide-react": "^0.555.0",
         "nprogress": "^0.2.0",
         "react": "^19.2.0",

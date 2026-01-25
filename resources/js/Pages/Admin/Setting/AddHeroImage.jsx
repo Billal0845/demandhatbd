@@ -24,7 +24,7 @@ function AddHeroImage() {
         <>
             <Head title="Add Hero Image" />
 
-            <div className="max-w-[1200px] mx-auto bg-white dark:bg-[#1F2937] rounded-xl shadow border border-gray-200 dark:border-[#374151] p-6 mt-8">
+            <div className="max-w-[1000px] mx-auto bg-white dark:bg-[#1F2937] rounded-xl shadow border border-gray-200 dark:border-[#374151] p-6 mt-8">
                 <h1 className="text-xl font-bold mb-6 text-gray-800 dark:text-gray-200 text-center">
                     Add Hero Image
                 </h1>

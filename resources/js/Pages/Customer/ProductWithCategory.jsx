@@ -7,7 +7,7 @@ import CustomerLayout from "@/Layouts/CustomerLayouts/CustomerLayout";
 import ReactPixel from "react-facebook-pixel";
 
 function ProductWithCategory({ products, name }) {
-    const { url } = usePage(); // Get current URL to parse query params if needed
+    const { url } = usePage();
 
     // Extract query params for initial state
     const queryParams = new URLSearchParams(window.location.search);
@@ -35,7 +35,7 @@ function ProductWithCategory({ products, name }) {
     // Handle Filter Apply
     const applyFilters = (newSort = sortBy, min = minPrice, max = maxPrice) => {
         router.get(
-            window.location.pathname, //url, filters, options
+            window.location.pathname,
             {
                 sort: newSort,
                 min_price: min,
@@ -67,15 +67,26 @@ function ProductWithCategory({ products, name }) {
 
     const handleAddToCart = (productId) => {
         const productToAdd = products?.data?.find((p) => p.id === productId);
+
+        if (!productToAdd) return;
+
         if (productToAdd.stock <= 0) {
             toast.error("Sorry, this item is currently out of stock.");
             return;
         }
 
+        // --- 1. Calculate Discount for Pixel Tracking ---
+        const discountPercentage = productToAdd.discount
+            ? Number(productToAdd.discount)
+            : 0;
+        const originalPrice = Number(productToAdd.price);
+        const discountedPrice =
+            originalPrice - originalPrice * (discountPercentage / 100);
+
         if (productToAdd) {
             ReactPixel.track("AddToCart", {
-                currency: "USD",
-                value: productToAdd.price,
+                currency: "BDT", // Consistent with other files
+                value: discountedPrice, // Track actual price
                 content_name: productToAdd.name,
                 content_ids: [productToAdd.id],
                 content_type: "product",
@@ -99,13 +110,13 @@ function ProductWithCategory({ products, name }) {
     const hasActivePriceFilter = minPrice || maxPrice;
 
     return (
-        <div className="min-h-screen  py-3 transition-colors duration-300">
+        <div className="min-h-screen py-3 transition-colors duration-300">
             <Toaster />
             <div className="mx-auto max-w-[1200px]">
                 <div className="mx-auto mt-5 px-4 sm:px-6 lg:px-8">
-                    <div className="flex  flex-col lg:flex-row gap-8">
+                    <div className="flex flex-col lg:flex-row gap-8">
                         {/* LEFT COLUMN: Sidebar (Desktop) */}
-                        <aside className="hidden  lg:block">
+                        <aside className="hidden lg:block">
                             <FilterSidebar
                                 minPrice={minPrice}
                                 setMinPrice={setMinPrice}
@@ -131,8 +142,7 @@ function ProductWithCategory({ products, name }) {
                                     <div className="flex items-center gap-4">
                                         {/* Mobile Filter Toggle */}
                                         <button
-                                            className=" lg:hidden flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#111827] text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition
-"
+                                            className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#111827] text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
                                             onClick={() =>
                                                 setShowMobileFilter(true)
                                             }
@@ -198,85 +208,86 @@ function ProductWithCategory({ products, name }) {
 
                             {/* PRODUCT GRID */}
                             <div className="grid font-inter gap-4 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                                {products.data.map((product) => (
-                                    <div
-                                        key={product.id}
-                                        className="group relative flex flex-col bg-white dark:bg-[#1F2937] rounded-xl border border-gray-200 dark:border-[#374151] shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
-                                    >
-                                        {/* Discount Badge (Mocked based on image) */}
-                                        {product.discount_price && (
-                                            <span className="absolute top-0 right-0 bg-[#ff4d4f] text-white text-xs font-bold px-2 py-1 rounded-bl-lg z-10">
-                                                -
-                                                {Math.round(
-                                                    ((product.price -
-                                                        product.discount_price) /
-                                                        product.price) *
-                                                        100,
-                                                )}
-                                                %
-                                            </span>
-                                        )}
+                                {products.data.map((product) => {
+                                    // --- 2. Calculation Logic for Display ---
+                                    const discountPercentage = product.discount
+                                        ? Number(product.discount)
+                                        : 0;
+                                    const originalPrice = Number(product.price);
+                                    const discountedPrice =
+                                        originalPrice -
+                                        originalPrice *
+                                            (discountPercentage / 100);
 
-                                        <Link
-                                            href={`/product/${product.id}`}
-                                            className="flex flex-col h-full"
+                                    return (
+                                        <div
+                                            key={product.id}
+                                            className="group relative flex flex-col bg-white dark:bg-[#1F2937] rounded-xl border border-gray-200 dark:border-[#374151] shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
                                         >
-                                            {/* Image Area */}
-                                            <div className="relative h-48 w-full p-4 bg-white dark:bg-[#374151] flex items-center justify-center">
-                                                <img
-                                                    src={`/storage/${product.image}`}
-                                                    alt={product.name}
-                                                    className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
-                                                />
+                                            {/* --- 3. Discount Badge (Top Left) --- */}
+                                            {/* Always show badge logic: -X% or 0% */}
+                                            <div className="absolute top-0 left-0 z-10 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-br-lg shadow-sm">
+                                                {discountPercentage > 0
+                                                    ? `-${discountPercentage}%`
+                                                    : "0%"}
                                             </div>
 
-                                            {/* Content Area */}
-                                            <div className="p-3 flex flex-col flex-1 border-t border-gray-100 dark:border-gray-700">
-                                                <h3 className=" font-semibold text-gray-800 dark:text-gray-100 text-sm line-clamp-2 mb-1 group-hover:text-[#658C58] dark:group-hover:text-[#7CA66E] transition-colors ">
-                                                    {product.name}
-                                                </h3>
+                                            <Link
+                                                href={`/product/${product.id}`}
+                                                className="flex flex-col h-full"
+                                            >
+                                                {/* Image Area */}
+                                                <div className="relative h-48 w-full p-4 bg-white dark:bg-[#374151] flex items-center justify-center">
+                                                    <img
+                                                        src={`/storage/${product.image}`}
+                                                        alt={product.name}
+                                                        className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
+                                                    />
+                                                </div>
 
-                                                <div className="mt-auto">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-[#658C58] dark:text-[#7CA66E] text-lg">
-                                                            ৳
-                                                            {product.discount_price ||
-                                                                product.price}
-                                                        </span>
-                                                        {product.discount_price && (
-                                                            <span className="text-gray-400 text-xs line-through">
-                                                                ৳{product.price}
+                                                {/* Content Area */}
+                                                <div className="p-3 flex flex-col flex-1 border-t border-gray-100 dark:border-gray-700">
+                                                    <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm line-clamp-2 mb-1 group-hover:text-[#658C58] dark:group-hover:text-[#7CA66E] transition-colors">
+                                                        {product.name}
+                                                    </h3>
+
+                                                    <div className="mt-auto">
+                                                        <div className="flex flex-col">
+                                                            {/* --- 4. Price Display --- */}
+                                                            <span className="font-bold text-[#658C58] dark:text-[#7CA66E] text-lg">
+                                                                Tk{" "}
+                                                                {Math.round(
+                                                                    discountedPrice,
+                                                                )}
                                                             </span>
-                                                        )}
+
+                                                            {discountPercentage >
+                                                                0 && (
+                                                                <span className="text-gray-400 text-xs line-through">
+                                                                    Tk{" "}
+                                                                    {
+                                                                        originalPrice
+                                                                    }
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </Link>
+                                            </Link>
 
-                                        {/* Hover Add to Cart Button */}
-                                        {/* <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleAddToCart(product.id);
-                                        }}
-                                        className="absolute bottom-20 right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg transform translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300"
-                                        title="Add to Cart"
-                                    >
-                                        <BsCartPlusFill size={18} />
-                                    </button> */}
-
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleAddToCart(product.id);
-                                            }}
-                                            className="  absolute bottom-3 right-3  flex items-center justify-center  h-9 w-9 rounded-full  bg-white dark:bg-[#111827]  border border-gray-200 dark:border-[#374151]  text-gray-600 dark:text-gray-300 shadow-sm opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300  hover:text-[#658C58] hover:shadow-md"
-                                            title="Add to Cart"
-                                        >
-                                            <BsCartPlusFill size={16} />
-                                        </button>
-                                    </div>
-                                ))}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleAddToCart(product.id);
+                                                }}
+                                                className="absolute bottom-3 right-3 flex items-center justify-center h-9 w-9 rounded-full bg-white dark:bg-[#111827] border border-gray-200 dark:border-[#374151] text-gray-600 dark:text-gray-300 shadow-sm opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:text-[#658C58] hover:shadow-md"
+                                                title="Add to Cart"
+                                            >
+                                                <BsCartPlusFill size={16} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
 
                             {/* PAGINATION */}
@@ -286,7 +297,7 @@ function ProductWithCategory({ products, name }) {
                                         key={index}
                                         href={link.url || "#"}
                                         preserveScroll
-                                        preserveState // Keep filters when changing page
+                                        preserveState
                                         className={`px-3 py-1 rounded text-sm font-medium transition-colors
                                         ${
                                             link.active

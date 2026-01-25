@@ -2,6 +2,7 @@ import AdminLayout from "@/Layouts/AdminLayouts/AdminLayout";
 import React, { useState } from "react";
 import { Link, useForm } from "@inertiajs/react"; // 1. Import useForm
 import { FiArrowLeft, FiUploadCloud } from "react-icons/fi";
+import toast from "react-hot-toast";
 
 function ProductForm({ categories = [] }) {
     // 2. Setup useForm instead of useState
@@ -19,6 +20,7 @@ function ProductForm({ categories = [] }) {
         width: "",
         bussiness_class: "",
         productDetails: "",
+        discount: "",
         image: null, // useForm handles null correctly during submission
     });
 
@@ -46,7 +48,7 @@ function ProductForm({ categories = [] }) {
         post("/admin/products", {
             forceFormData: true, // Ensures file upload works
             onSuccess: () => {
-                alert("Product saved successfully!");
+                toast.success("Product saved successfully!");
                 // Optionally clear image preview here
             },
             // Errors are automatically put into the 'errors' object by useForm
@@ -208,6 +210,29 @@ function ProductForm({ categories = [] }) {
                             {errors.price && (
                                 <p className="mt-1 text-sm text-red-500">
                                     {errors.price}
+                                </p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                Discount(%)
+                            </label>
+                            <input
+                                type="number"
+                                name="discount"
+                                value={data.price}
+                                onChange={handleChange}
+                                className={`bg-gray-50 dark:bg-slate-900 border ${
+                                    errors.price
+                                        ? "border-red-500"
+                                        : "border-gray-300"
+                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
+                                placeholder="10"
+                            />
+                            {errors.price && (
+                                <p className="mt-1 text-sm text-red-500">
+                                    {errors.discount}
                                 </p>
                             )}
                         </div>

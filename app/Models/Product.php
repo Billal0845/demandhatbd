@@ -26,6 +26,7 @@ class Product extends Model
         'short_description',
         'sku',
         'bussiness_class',
+        'discount'
     ];
 
     // Relationship with Category
@@ -40,5 +41,6 @@ class Product extends Model
         'length' => 'float',
         'width' => 'float',
         'stock' => 'integer',
+        'discount' => 'float',
     ];
 }

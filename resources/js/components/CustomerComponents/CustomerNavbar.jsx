@@ -10,6 +10,7 @@ import { HiOutlineLogout } from "react-icons/hi";
 import { LiaShoppingBagSolid } from "react-icons/lia";
 import { HiOutlineLogin } from "react-icons/hi";
 import { MdPersonAddAlt } from "react-icons/md";
+import SearchSection from "../../components/CustomerComponents/SearchSection";
 
 function Navbar({ onToggleSidebar, isDarkMode, toggleDarkMode }) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -20,7 +21,7 @@ function Navbar({ onToggleSidebar, isDarkMode, toggleDarkMode }) {
     const user = auth?.user;
 
     return (
-        <nav className="sticky border-b  top-0 z-30 w-full bg-[#658C58] dark:bg-[#527043] shadow-sm dark:border-b dark:border-gray-700 transition-colors duration-300">
+        <nav className=" border-b  top-0 z-30 w-full bg-[#658C58] dark:bg-[#527043] shadow-sm dark:border-b dark:border-gray-700 transition-colors duration-300">
             <div className=" mx-auto px-4 py-2">
                 <div className="flex justify-between items-center">
                     {/* Left: Hamburger + Logo */}
@@ -222,6 +223,10 @@ function Navbar({ onToggleSidebar, isDarkMode, toggleDarkMode }) {
                             )}
                         </div>
                     </div>
+                </div>
+
+                <div className="mt-2 md:mt-0 md:py-2">
+                    <SearchSection />
                 </div>
 
                 {/* Mobile Menu (Products, About, Vouchers) */}

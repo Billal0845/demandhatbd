@@ -11,32 +11,34 @@ function NewArrivals({ products }) {
         const productToAdd = products.find((p) => p.id === productId);
         if (productToAdd.stock <= 0) {
             toast.error("Sorry, this item is currently out of stock.");
+            return;
+        } else {
+            if (productToAdd) {
+                ReactPixel.track("AddToCart", {
+                    currency: "USD",
+                    value: productToAdd.price, // Use the found object
+                    content_name: productToAdd.name, // Use the found object
+                    content_ids: [productId],
+                    content_type: "product",
+                });
+            }
+
+            router.post(
+                "/cart/add",
+                {
+                    product_id: productId,
+                    quantity: 1,
+                },
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        toast.success("Successfully Added to Cart!");
+                    },
+                },
+            );
         }
 
         // 2. Check if found (safety measure) and Track
-        if (productToAdd) {
-            ReactPixel.track("AddToCart", {
-                currency: "USD",
-                value: productToAdd.price, // Use the found object
-                content_name: productToAdd.name, // Use the found object
-                content_ids: [productId],
-                content_type: "product",
-            });
-        }
-
-        router.post(
-            "/cart/add",
-            {
-                product_id: productId,
-                quantity: 1,
-            },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    toast.success("Successfully Added to Cart!");
-                },
-            },
-        );
     };
 
     // Safety check if products is undefined

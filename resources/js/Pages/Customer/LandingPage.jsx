@@ -12,7 +12,12 @@ import Section from "@/components/CustomerComponents/Section";
 import { useEffect } from "react";
 import ReactPixel from "react-facebook-pixel";
 
-const LandingPage = ({ products = [], categories = [], heroes = [] }) => {
+const LandingPage = ({
+    products = [],
+    categories = [],
+    heroes = [],
+    sections = [],
+}) => {
     useEffect(() => {
         if (!products || products.length === 0) return;
 
@@ -35,7 +40,17 @@ const LandingPage = ({ products = [], categories = [], heroes = [] }) => {
                     <Toaster />
                     <HeroBanner heroes={heroes} />
                     <CategoriesSection categoriesComing={categories} />
-                    <Section
+
+                    {sections.map((section) => (
+                        <Section
+                            key={section.id}
+                            products={products}
+                            sectionname={section.category_name}
+                            catid={Number(section.category_id)}
+                        />
+                    ))}
+
+                    {/* <Section
                         products={products}
                         sectionname={"Kid Zone"}
                         catid={13}
@@ -53,7 +68,7 @@ const LandingPage = ({ products = [], categories = [], heroes = [] }) => {
                         products={products}
                         sectionname={"Electronics"}
                         catid={10}
-                    />
+                    /> */}
                 </div>
             </div>
         </>

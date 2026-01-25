@@ -10,11 +10,13 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\OtpMail;
 use App\Models\Category;
 use App\Models\HeroImage;
+use App\Models\LandingSection;
 use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Review;
 
 class CustomerController extends Controller
 {
@@ -23,10 +25,12 @@ class CustomerController extends Controller
         $products = Product::all();
         $categories = Category::all();
         $heroes = HeroImage::all();
+        $sections = LandingSection::all();
         return inertia('Customer/LandingPage', [
             'products' => $products,
             'categories' => $categories,
             'heroes' => $heroes,
+            'sections' => $sections,
         ]);
     }
 
@@ -113,9 +117,55 @@ class CustomerController extends Controller
     }
 
 
-    public function showProductPage()
+    public function showProductPage(Request $request)
     {
-        $products = Product::all();
+        // 1. Start Query
+        $query = Product::query();
+
+        // 2. Search Logic (New)
+        if ($request->filled('search')) {
+            $searchTerm = $request->input('search');
+            $query->where('name', 'LIKE', '%' . $searchTerm . '%');
+        }
+
+        // 3. Price Filter Logic (Reuse logic from category page if you want standard filters here too)
+        if ($request->filled('min_price')) {
+            $query->where('price', '>=', $request->min_price);
+        }
+        if ($request->filled('max_price')) {
+            $query->where('price', '<=', $request->max_price);
+        }
+
+        // 4. Sort Logic (Reuse logic)
+        $sort = $request->input('sort', 'default');
+        switch ($sort) {
+            case 'date_desc':
+                $query->orderBy('created_at', 'desc');
+                break;
+            case 'date_asc':
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'name_asc':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'name_desc':
+                $query->orderBy('name', 'desc');
+                break;
+            case 'price_desc':
+                $query->orderBy('price', 'desc');
+                break;
+            case 'price_asc':
+                $query->orderBy('price', 'asc');
+                break;
+            default:
+                $query->orderBy('id', 'desc');
+                break;
+        }
+
+        // 5. Paginate Results
+        $products = $query->paginate(20)->withQueryString();
+
+        // 6. Return View
         return inertia('Customer/ProductPage', [
             'products' => $products,
         ]);
@@ -383,6 +433,10 @@ class CustomerController extends Controller
 
 
     }
+
+
+
+
 
 
 

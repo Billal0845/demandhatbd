@@ -2,6 +2,7 @@ import AdminLayout from "@/Layouts/AdminLayouts/AdminLayout";
 import React, { useState } from "react";
 import { Link, useForm } from "@inertiajs/react";
 import { FiArrowLeft, FiUploadCloud } from "react-icons/fi";
+import toast from "react-hot-toast";
 
 function EditProduct({ categories = [], product = [] }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -11,6 +12,7 @@ function EditProduct({ categories = [], product = [] }) {
         brand: product.brand ?? "",
         quick_view: product.quick_view ?? "",
         price: product.price ?? "",
+        discount: product.discount ?? "",
         stock: product.stock ?? "",
         color: product.color ?? "",
         weight: product.weight ?? "",
@@ -43,7 +45,7 @@ function EditProduct({ categories = [], product = [] }) {
         post(`/admin/products/${product.id}`, {
             forceFormData: true,
             onSuccess: () => {
-                alert("Product Updated successfully!");
+                toast.success("Product Updated successfully");
             },
         });
     };
@@ -202,6 +204,29 @@ function EditProduct({ categories = [], product = [] }) {
                             {errors.price && (
                                 <p className="mt-1 text-sm text-red-500">
                                     {errors.price}
+                                </p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                Discount(%)
+                            </label>
+                            <input
+                                type="number"
+                                name="discount"
+                                value={data.discount}
+                                onChange={handleChange}
+                                className={`bg-gray-50 dark:bg-slate-900 border ${
+                                    errors.price
+                                        ? "border-red-500"
+                                        : "border-gray-300"
+                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
+                                placeholder="10"
+                            />
+                            {errors.discount && (
+                                <p className="mt-1 text-sm text-red-500">
+                                    {errors.discount}
                                 </p>
                             )}
                         </div>

@@ -64,7 +64,7 @@ export default function HeroCarousel({ heroes }) {
         <div
             // 1. RESPONSIVE HEIGHT:
             // h-[200px] on mobile, h-[350px] on tablet, h-[450px] on desktop
-            className="Hero-Banner  relative h-[200px] sm:h-[350px] lg:h-[450px]  lg:w-full dark:bg-gray-600
+            className="Hero-Banner   relative h-[200px] sm:h-[350px] lg:h-[450px]  lg:w-full dark:bg-gray-600
     overflow-hidden group select-none"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}

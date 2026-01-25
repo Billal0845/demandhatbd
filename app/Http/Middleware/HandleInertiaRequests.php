@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Marquee;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -52,6 +53,11 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn() => $request->session()->get('error'),
                 'warning' => fn() => $request->session()->get('warning'),
                 'info' => fn() => $request->session()->get('info'),
+            ],
+
+            'global' => [
+                // Fetch the first marquee, or add logic to find the 'active' one
+                'marquee' => Marquee::first(),
             ],
         ];
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\HeroImage;
+use App\Models\Marquee;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -11,9 +12,28 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
+use App\Models\LandingSection;
 
 class AdminController extends Controller
 {
+
+    public function updateMarquee(Request $request, $id)
+    {
+        $marquee = Marquee::findOrFail($id);
+
+        $validated = $request->validate([
+            'content' => 'required|string',
+            'position' => 'nullable|string',
+        ]);
+
+        $marquee->content = $validated['content'];
+        $marquee->position = $validated['position'] ?? null;
+
+        $marquee->save();
+
+        return redirect()->back()->with('success', 'Successfully Updated Marquee');
+    }
+
 
     public function showUsers()
     {
@@ -31,6 +51,9 @@ class AdminController extends Controller
         $endDate = Carbon::now();
         $startDate = Carbon::now()->subDays(30);
 
+        // In DashboardController.php
+// In your dashboard() method
+
         if ($range === 'today') {
             $startDate = Carbon::today();
         } elseif ($range === 'yesterday') {
@@ -38,15 +61,29 @@ class AdminController extends Controller
             $endDate = Carbon::yesterday()->endOfDay();
         } elseif ($range === '7_days') {
             $startDate = Carbon::now()->subDays(7);
-        } elseif ($range === 'custom' && $customStart && $customEnd) {
-            $startDate = Carbon::parse($customStart);
-            $endDate = Carbon::parse($customEnd);
+        } elseif ($range === 'lifetime') {
+            // 1. Find the date of the very first order
+            $earliestOrder = Order::min('created_at');
+
+            // 2. If orders exist, use that date. If not, fallback to today.
+            $startDate = $earliestOrder ? Carbon::parse($earliestOrder) : Carbon::now();
+            $endDate = Carbon::now();
+        } elseif ($range === 'custom') {
+            if ($customStart && $customEnd) {
+                $startDate = Carbon::parse($customStart)->startOfDay();
+                $endDate = Carbon::parse($customEnd)->endOfDay();
+            } else {
+                // Fallback
+                $range = '30_days';
+                $startDate = Carbon::now()->subDays(30);
+            }
         }
 
         // 2. KPI Queries
         $ordersQuery = Order::whereBetween('created_at', [$startDate, $endDate]);
 
         $totalRevenue = $ordersQuery->clone()->where('payment_status', 'paid')->sum('grand_total');
+        $totalSalesVolume = $ordersQuery->clone()->where('order_status', '!=', 'cancelled')->sum('grand_total');
         $totalOrders = $ordersQuery->clone()->count();
         $totalCustomers = User::where('role', 'customer')
             ->whereBetween('created_at', [$startDate, $endDate])
@@ -85,6 +122,7 @@ class AdminController extends Controller
         return Inertia::render('Admin/Dashboard', [
             'stats' => [
                 'revenue' => $totalRevenue,
+                'sales_volume' => $totalSalesVolume,
                 'orders' => $totalOrders,
                 'customers' => $totalCustomers,
                 'aov' => $avgOrderValue,
@@ -110,9 +148,13 @@ class AdminController extends Controller
 
     public function settingPage()
     {
+        $marquee = Marquee::first();
+        $sections = LandingSection::all();
         $heroes = HeroImage::all();
         return inertia('Admin/Setting', [
-            'heroes' => $heroes
+            'heroes' => $heroes,
+            'sections' => $sections,
+            'marquee' => $marquee,
         ]);
     }
 
@@ -187,6 +229,56 @@ class AdminController extends Controller
 
         $hero->delete();
         return redirect()->back()->with('success', 'Image deleted successfully!');
+    }
+
+
+
+    public function sectionForm()
+    {
+
+        return inertia('Admin/Setting/SectionForm');
+    }
+
+    public function sectionStore(Request $request)
+    {
+        $validated = $request->validate([
+            'category_name' => 'required|string|max:255',
+            'category_id' => 'required|integer',
+        ]);
+
+        LandingSection::create($validated);
+
+        return redirect()->back()->with('success', 'Section created');
+    }
+
+    public function sectionEdit($id)
+    {
+        $section = LandingSection::findOrFail($id);
+        return inertia('Admin/Setting/SectionEditForm', [
+            'section' => $section
+        ]);
+    }
+
+
+    public function sectionUpdate(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'category_name' => 'required|string|max:255',
+            'category_id' => 'required|integer',
+        ]);
+
+        $section = LandingSection::findOrFail($id);
+        $section->update($validated);
+
+        return redirect()->back()->with('success', 'Section updated successfully.');
+    }
+
+    public function sectionDelete($id)
+    {
+        $section = LandingSection::findOrFail($id);
+        $section->delete();
+
+        return redirect()->back()->with('success', 'Section deleted successfully.');
     }
 
 

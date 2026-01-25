@@ -1,5 +1,11 @@
 import React from "react";
-import { FiShoppingBag, FiUsers, FiTrendingUp } from "react-icons/fi";
+// Added FiBarChart2 for the new Sales icon
+import {
+    FiShoppingBag,
+    FiUsers,
+    FiTrendingUp,
+    FiBarChart2,
+} from "react-icons/fi";
 import { FaBangladeshiTakaSign } from "react-icons/fa6";
 
 const StatCard = ({ title, value, icon: Icon, color, subtext }) => (
@@ -9,11 +15,11 @@ const StatCard = ({ title, value, icon: Icon, color, subtext }) => (
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                     {title}
                 </p>
-                <h3 className="text-2xl font-bold text-gray-800 dark:text-white mt-2">
+                <h3 className="text-sm font-semibold text-gray-800 dark:text-white mt-2">
                     {value}
                 </h3>
             </div>
-            <div className={`p-3 rounded-full ${color} bg-opacity-10 text-xl`}>
+            <div className={`p-2 rounded-full ${color} bg-opacity-10 text-xl`}>
                 <Icon />
             </div>
         </div>
@@ -30,25 +36,43 @@ export default function KPICards({ stats }) {
         }).format(amount);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        // Changed grid to xl:grid-cols-5 to fit 5 cards nicely on large screens
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-6">
+            {/* 1. Total Sales (Volume) - NEW CARD */}
+            <StatCard
+                title="Total Sales"
+                value={formatCurrency(stats.sales_volume)}
+                icon={FiBarChart2}
+                color="text-indigo-600 bg-indigo-500"
+                subtext="Excludes Cancelled"
+            />
+
+            {/* 2. Total Revenue (Cash) */}
             <StatCard
                 title="Total Revenue"
                 value={formatCurrency(stats.revenue)}
                 icon={FaBangladeshiTakaSign}
                 color="text-green-600 bg-green-500"
+                subtext="Paid Orders Only"
             />
+
+            {/* 3. Total Orders */}
             <StatCard
                 title="Total Orders"
                 value={stats.orders}
                 icon={FiShoppingBag}
                 color="text-blue-600 bg-blue-500"
             />
+
+            {/* 4. Avg Order Value */}
             <StatCard
                 title="Avg. Order Value"
                 value={formatCurrency(stats.aov)}
                 icon={FiTrendingUp}
                 color="text-purple-600 bg-purple-500"
             />
+
+            {/* 5. Total Customers */}
             <StatCard
                 title="Total Customers"
                 value={stats.customers}

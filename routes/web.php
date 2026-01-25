@@ -124,9 +124,21 @@ Route::middleware('auth')->group(function () {
     Route::delete('/admin/hero/{id}', [AdminController::class, 'deleteHeroImage']);
 
 
+    Route::get('/admin/addSections', [AdminController::class, 'sectionForm']);
+    Route::post('/admin/section/store', [AdminController::class, 'sectionStore']);
+    Route::get('/admin/sectionEdit/{id}', [AdminController::class, 'sectionEdit']);
+    Route::patch('/admin/section/{id}', [AdminController::class, 'sectionUpdate']);
+    Route::delete('/admin/sectionDelete/{id}', [AdminController::class, 'sectionDelete']);
+
+    Route::patch('/admin/marquee/{id}', [AdminController::class, 'updateMarquee']);
+
+
+
     Route::get('/admin/employees', [EmployeeController::class, 'showEmployees']);
     Route::get('/admin/employee/create', [EmployeeController::class, 'showAddEmployeeForm']);
     Route::post('/admin/employee/store', [EmployeeController::class, 'store'])->name('admin.employees.store');
+
+
     // Optional: Delete logic
   });
 

@@ -20,19 +20,35 @@ class CartController extends Controller
             // --- Logged In Logic (Database) ---
             $dbCart = Cart::with('product')->where('user_id', Auth::id())->get();
 
-
             foreach ($dbCart as $item) {
                 if ($item->product) {
-                    $price = $item->product->price;
+                    // 1. Get Values
+                    $originalPrice = (float) $item->product->price;
+                    $discountPercent = $item->product->discount ? (float) $item->product->discount : 0;
+
+                    // 2. Calculate Discounted Price
+                    // Formula: Price - (Price * Discount / 100)
+                    $discountedPrice = $originalPrice - ($originalPrice * ($discountPercent / 100));
+                    $discountedPrice = round($discountedPrice); // Round to avoid decimals (e.g. 99.99 -> 100)
+
                     $cartItems[] = [
-                        'id' => $item->product_id, // We use product_id as reference for actions
+                        'id' => $item->product_id,
                         'name' => $item->product->name,
-                        'image' => '/storage/' . $item->product->image, // Ensure correct path
-                        'price' => (float) $price,
+                        'image' => '/storage/' . $item->product->image,
+
+                        // Pass the DISCOUNTED price as the main price
+                        'price' => $discountedPrice,
+
+                        // Pass original data for UI (Strikethrough / Badges)
+                        'original_price' => $originalPrice,
+                        'discount_percent' => $discountPercent,
+
                         'quantity' => $item->quantity,
                         'description' => $item->product->short_description ?? '',
                     ];
-                    $subtotal += $price * $item->quantity;
+
+                    // 3. Add to Subtotal (Discounted Price * Qty)
+                    $subtotal += $discountedPrice * $item->quantity;
                 }
             }
 
@@ -40,32 +56,48 @@ class CartController extends Controller
             // --- Guest Logic (Session) ---
             $sessionCart = session()->get('cart', []);
 
-            // $sessionCart is structured as [ product_id => quantity ]
             if (!empty($sessionCart)) {
                 $products = Product::whereIn('id', array_keys($sessionCart))->get();
 
                 foreach ($products as $product) {
                     $qty = $sessionCart[$product->id];
+
+                    // 1. Get Values
+                    $originalPrice = (float) $product->price;
+                    $discountPercent = $product->discount ? (float) $product->discount : 0;
+
+                    // 2. Calculate Discounted Price
+                    $discountedPrice = $originalPrice - ($originalPrice * ($discountPercent / 100));
+                    $discountedPrice = round($discountedPrice);
+
                     $cartItems[] = [
                         'id' => $product->id,
                         'name' => $product->name,
                         'image' => '/storage/' . $product->image,
-                        'price' => (float) $product->price,
+                        'price' => $discountedPrice, // Main price is now the discounted one
+                        'original_price' => $originalPrice,
+                        'discount_percent' => $discountPercent,
                         'quantity' => $qty,
                         'description' => $product->short_description ?? '',
                     ];
-                    $subtotal += $product->price * $qty;
+
+                    // 3. Add to Subtotal
+                    $subtotal += $discountedPrice * $qty;
                 }
             }
         }
 
-        // Calculate Totals
-        $delivery = $subtotal > 0 ? 60 : 0; // Example fixed delivery
+        // --- Totals Calculation ---
+        $delivery = $subtotal > 0 ? 60 : 0; // Fixed delivery charge example
+
+        // Placeholder for future Coupon Logic
+        $couponDiscount = 0;
+
         $totals = [
-            'itemTotal' => round($subtotal, 2),
+            'itemTotal' => $subtotal, // Sum of Discounted Prices
             'delivery' => $delivery,
-            'discount' => 0,
-            'grandTotal' => round($subtotal + $delivery, 2)
+            'discount' => $couponDiscount, // Kept 0 for now (Frontend "Coupon" section)
+            'grandTotal' => $subtotal + $delivery - $couponDiscount
         ];
 
         return Inertia::render('Customer/Cart', [
@@ -77,7 +109,6 @@ class CartController extends Controller
     // Add Item to Cart
     public function store(Request $request)
     {
-        ;
         $productId = $request->input('product_id');
         $quantity = $request->input('quantity', 1);
 
@@ -118,7 +149,6 @@ class CartController extends Controller
 
         return redirect()->back()->with('success', 'Product added to cart!');
     }
-
 
     // Update Quantity
     public function update(Request $request, $id)

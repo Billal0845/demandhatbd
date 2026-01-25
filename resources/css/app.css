@@ -69,11 +69,26 @@
     }
 }
 
-@layer base {
-    * {
-        @apply border-border;
+.marquee-wrapper {
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.marquee-track {
+    display: inline-flex;
+    width: max-content;
+    animation: marquee-scroll 15s linear infinite;
+}
+
+.marquee-track span {
+    padding-right: 3rem;
+}
+
+@keyframes marquee-scroll {
+    from {
+        transform: translateX(0);
     }
-    body {
-        @apply bg-background text-foreground;
+    to {
+        transform: translateX(-50%);
     }
 }

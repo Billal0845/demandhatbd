@@ -12,14 +12,48 @@ use Inertia\Inertia;
 
 class AdminProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with('category')->latest()->paginate(5);
+        $query = Product::query()->with('category');
 
-        return inertia('Admin/Product/Products', [
-            'products' => $products,
+        // Filter by Search
+        if ($request->search) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        // Filter by Category
+        if ($request->category) {
+            $query->where('category_id', $request->category);
+        }
+
+        // Filter by Status (custom logic)
+        if ($request->status) {
+            if ($request->status === 'instock')
+                $query->where('stock', '>', 5);
+            if ($request->status === 'lowstock')
+                $query->whereBetween('stock', [1, 5]);
+            if ($request->status === 'outofstock')
+                $query->where('stock', '<=', 0);
+        }
+
+        return Inertia::render('Admin/Product/Products', [
+            'products' => $query->paginate(10)->withQueryString(),
+            'categories' => Category::all(),
+            'filters' => $request->only(['search', 'category', 'status'])
         ]);
     }
+
+
+    // public function index()
+    // {
+    //     $products = Product::with('category')->latest()->paginate(5);
+    //     $categories = Category::all();
+
+    //     return inertia('Admin/Product/Products', [
+    //         'products' => $products,
+    //         'categories' => $categories,
+    //     ]);
+    // }
 
     public function create()
     {
@@ -44,7 +78,7 @@ class AdminProductController extends Controller
             'quick_view' => 'nullable|string',
             'short_description' => 'nullable|string',
             'bussiness_class' => 'required|in:free,normal,medium,high',
-
+            'discount' => 'nullable|numeric'
         ]);
 
         // 1. Handle Image Upload
@@ -82,6 +116,8 @@ class AdminProductController extends Controller
             'quick_view' => $validated['quick_view'],
             'short_description' => $validated['short_description'],
             'bussiness_class' => $validated['bussiness_class'],
+            'discount' => $validated['discount'],
+
         ]);
 
         return redirect()->to('/admin/products')->with('success', 'Product created successfully!');
@@ -119,6 +155,7 @@ class AdminProductController extends Controller
             'quick_view' => 'nullable|string',
             'short_description' => 'nullable|string',
             'bussiness_class' => 'required|in:free,normal,medium,high',
+            'discount' => 'nullable|numeric'
         ]);
 
         // 1. Handle Image
@@ -149,6 +186,8 @@ class AdminProductController extends Controller
         $product->quick_view = $validated['quick_view'];
         $product->short_description = $validated['short_description'];
         $product->bussiness_class = $validated['bussiness_class'];
+        $product->discount = $validated['discount'];
+
 
         $product->save();
 
