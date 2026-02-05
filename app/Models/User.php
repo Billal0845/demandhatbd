@@ -25,6 +25,7 @@ class User extends Authenticatable
         'email_verified_at',
         'phone_verified_at',
         'remember_token',
+        'google2fa_secret',
 
     ];
 
@@ -35,6 +36,7 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'otp',
+        'google2fa_secret',
     ];
 
     /**

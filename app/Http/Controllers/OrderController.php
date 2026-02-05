@@ -62,6 +62,10 @@ class OrderController extends Controller
             });
         });
 
+        $query->when($request->unassigned_only === 'true', function ($q) {
+            $q->whereNull('assigned_to');
+        });
+
         // 3. Order Status Filter
         $query->when($request->order_status, function ($q, $status) {
             $q->where('order_status', $status);
@@ -114,7 +118,7 @@ class OrderController extends Controller
         // --- DATA FOR DROPDOWNS / MODALS ---
 
         // Get employees for assignment dropdown (excluding current user if needed)
-        $employees = User::whereIn('role', ['employee', 'admin'])
+        $employees = User::whereIn('role', ['employee',])
             ->where('id', '!=', Auth::id())
             ->select('id', 'name')
             ->get();
@@ -134,7 +138,8 @@ class OrderController extends Controller
                 'start_date',
                 'end_date',
                 'sort_by',
-                'sort_order'
+                'sort_order',
+                'unassigned_only',
             ]),
             'employees' => $employees,
             'unassignedCount' => $unassignedCount,
@@ -277,21 +282,36 @@ class OrderController extends Controller
 
     public function update(Request $request, $id)
     {
+
+
         $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'phone' => 'required|string|max:20',
+            'address' => 'required|string',
+            'subtotal' => 'required|numeric|min:0',
+            'delivery_fee' => 'required|numeric|min:0',
+            'grand_total' => 'required|numeric|min:0',
             'order_status' => 'required|in:pending,processing,shipped,delivered,cancelled',
             'payment_status' => 'required|in:paid,pending,failed,refunded'
         ]);
 
+
         $order = Order::findOrFail($id);
 
         $data = [
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'subtotal' => $request->subtotal,
+            'delivery_fee' => $request->delivery_fee,
+            'grand_total' => $request->grand_total,
             'order_status' => $request->order_status,
-            'payment_status' => $request->payment_status
+            'payment_status' => $request->payment_status,
         ];
 
-        // --- NEW FEATURE: AUTHORIZATION TRACKING ---
-        // If the order is being moved to 'processing' or 'shipped' (confirmed states)
-        // AND it hasn't been authorized yet, record who did it.
+        // --- MAINTAINED: AUTHORIZATION TRACKING ---
         if (in_array($request->order_status, ['processing', 'shipped', 'delivered'])) {
             if ($order->authorized_by === null) {
                 $data['authorized_by'] = Auth::id();
@@ -300,8 +320,11 @@ class OrderController extends Controller
 
         $order->update($data);
 
-        return redirect()->back()->with('success', 'Order status updated successfully!');
+        return redirect()->back()->with('success', 'Order updated successfully!');
     }
+
+
+
 
     public function exportPdf(Request $request)
     {

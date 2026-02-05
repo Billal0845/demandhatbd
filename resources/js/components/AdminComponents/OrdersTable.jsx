@@ -7,6 +7,7 @@ import {
     FiChevronUp,
     FiChevronDown,
     FiShield,
+    FiTruck,
 } from "react-icons/fi";
 
 export default function OrdersTable({
@@ -14,6 +15,7 @@ export default function OrdersTable({
     filters,
     onEditStatus,
     onCheckFraud,
+    onSendCourier,
 }) {
     const sortBy = filters?.sort_by || "created_at";
     const sortOrder = filters?.sort_order || "desc";
@@ -216,6 +218,14 @@ export default function OrdersTable({
                                             title="Check Fraud Risks"
                                         >
                                             <FiShield size={16} />
+                                        </button>
+
+                                        <button
+                                            onClick={() => onSendCourier(order)}
+                                            className="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-800 text-blue-500 dark:text-blue-300 transition-colors"
+                                            title="Send to Courier"
+                                        >
+                                            <FiTruck size={16} />
                                         </button>
 
                                         <Link

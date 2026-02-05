@@ -24,6 +24,7 @@ class Order extends Model
         'order_status',
         'assigned_to',
         'authorized_by',
+        'courier_invoice_id',
     ];
 
     protected $casts = [

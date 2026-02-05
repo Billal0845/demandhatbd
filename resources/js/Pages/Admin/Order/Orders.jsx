@@ -7,6 +7,8 @@ import Pagination from "../../../components/AdminComponents/Pagination";
 import { FiX, FiUserPlus } from "react-icons/fi";
 import axios from "axios";
 import FraudCheckModal from "../../../components/AdminComponents/FraudCheckModal";
+import toast from "react-hot-toast";
+import CourierModal from "../../../components/AdminComponents/CourierModal";
 
 export default function Orders({
     orders,
@@ -24,6 +26,15 @@ export default function Orders({
     const [fraudData, setFraudData] = useState(null);
     const [isFraudLoading, setIsFraudLoading] = useState(false);
     const [checkingPhone, setCheckingPhone] = useState("");
+
+    //courier er state
+    const [isCourierModalOpen, setIsCourierModalOpen] = useState(false);
+    const [selectedCourierOrder, setSelectedCourierOrder] = useState(null);
+
+    const openCourierModal = (order) => {
+        setSelectedCourierOrder(order);
+        setIsCourierModalOpen(true);
+    };
 
     const handleCheckFraud = async (order) => {
         setCheckingPhone(order.phone);
@@ -52,6 +63,13 @@ export default function Orders({
         reset: resetEdit,
         errors: editErrors,
     } = useForm({
+        name: "",
+        email: "",
+        phone: "",
+        address: "",
+        subtotal: "",
+        delivery_fee: "",
+        grand_total: "",
         order_status: "",
         payment_status: "",
     });
@@ -75,10 +93,28 @@ export default function Orders({
     const openEditModal = (order) => {
         setSelectedOrder(order);
         setEditData({
+            name: order.name,
+            email: order.email,
+            phone: order.phone,
+            address: order.address,
+            subtotal: order.subtotal,
+            delivery_fee: order.delivery_fee,
+            grand_total: order.grand_total,
             order_status: order.order_status,
             payment_status: order.payment_status,
         });
         setIsEditModalOpen(true);
+    };
+
+    const handlePriceChange = (field, value) => {
+        const val = parseFloat(value) || 0;
+        setEditData((prev) => {
+            const newData = { ...prev, [field]: val };
+            newData.grand_total =
+                (parseFloat(newData.subtotal) || 0) +
+                (parseFloat(newData.delivery_fee) || 0);
+            return newData;
+        });
     };
 
     const closeEditModal = () => {
@@ -92,6 +128,7 @@ export default function Orders({
         put(`/admin/orders/${selectedOrder.id}/update`, {
             onSuccess: () => {
                 closeEditModal();
+                toast.success("Order Edited Successfully.");
             },
         });
     };
@@ -129,106 +166,241 @@ export default function Orders({
                 filters={filters}
                 onEditStatus={openEditModal}
                 onCheckFraud={handleCheckFraud}
+                onSendCourier={openCourierModal}
             />
 
             {/* 3. Pagination Section */}
             <Pagination links={orders.links} total={orders.total} />
+
+            <CourierModal
+                isOpen={isCourierModalOpen}
+                onClose={() => setIsCourierModalOpen(false)}
+                order={selectedCourierOrder}
+            />
 
             {/* ========================================================= */}
             {/*                 MODAL 1: UPDATE STATUS                    */}
             {/* ========================================================= */}
             {isEditModalOpen && selectedOrder && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up">
-                        {/* Modal Header */}
+                    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-4xl overflow-hidden animate-fade-in-up">
                         <div className="flex justify-between items-center p-4 border-b dark:border-gray-800">
-                            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-                                Update Order #{selectedOrder.id}
+                            <h3 className="text-lg font-semibold dark:text-white">
+                                Edit Order #{selectedOrder.id}
                             </h3>
                             <button
                                 onClick={closeEditModal}
-                                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                                className="text-gray-500 hover:text-gray-700"
                             >
                                 <FiX size={20} />
                             </button>
                         </div>
 
-                        {/* Modal Form */}
-                        <form onSubmit={updateStatus} className="p-6 space-y-4">
-                            {/* Order Status */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Order Status
-                                </label>
-                                <select
-                                    value={editData.order_status}
-                                    onChange={(e) =>
-                                        setEditData(
-                                            "order_status",
-                                            e.target.value,
-                                        )
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="pending">Pending</option>
-                                    <option value="processing">
-                                        Processing
-                                    </option>
-                                    <option value="shipped">Shipped</option>
-                                    <option value="delivered">Delivered</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
-                                {editErrors.order_status && (
-                                    <div className="text-red-500 text-xs mt-1">
-                                        {editErrors.order_status}
+                        <form onSubmit={updateStatus} className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Column 1: Customer Details */}
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-bold text-blue-600 uppercase">
+                                        Customer Information
+                                    </h4>
+                                    <div>
+                                        <label className="block text-sm font-medium dark:text-gray-300">
+                                            Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={editData.name}
+                                            onChange={(e) =>
+                                                setEditData(
+                                                    "name",
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-gray-700 dark:text-white"
+                                        />
                                     </div>
-                                )}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="block text-sm font-medium dark:text-gray-300">
+                                                Email
+                                            </label>
+                                            <input
+                                                type="email"
+                                                value={editData.email}
+                                                onChange={(e) =>
+                                                    setEditData(
+                                                        "email",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-gray-700 dark:text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium dark:text-gray-300">
+                                                Phone
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editData.phone}
+                                                onChange={(e) =>
+                                                    setEditData(
+                                                        "phone",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-gray-700 dark:text-white"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium dark:text-gray-300">
+                                            Address
+                                        </label>
+                                        <textarea
+                                            rows="3"
+                                            value={editData.address}
+                                            onChange={(e) =>
+                                                setEditData(
+                                                    "address",
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-gray-700 dark:text-white"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Column 2: Status & Financials */}
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-bold text-purple-600 uppercase">
+                                        Status & Financials
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="block text-sm font-medium dark:text-gray-300">
+                                                Order Status
+                                            </label>
+                                            <select
+                                                value={editData.order_status}
+                                                onChange={(e) =>
+                                                    setEditData(
+                                                        "order_status",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-gray-700 dark:text-white"
+                                            >
+                                                <option value="pending">
+                                                    Pending
+                                                </option>
+                                                <option value="processing">
+                                                    Processing
+                                                </option>
+                                                <option value="shipped">
+                                                    Shipped
+                                                </option>
+                                                <option value="delivered">
+                                                    Delivered
+                                                </option>
+                                                <option value="cancelled">
+                                                    Cancelled
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium dark:text-gray-300">
+                                                Payment Status
+                                            </label>
+                                            <select
+                                                value={editData.payment_status}
+                                                onChange={(e) =>
+                                                    setEditData(
+                                                        "payment_status",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-gray-700 dark:text-white"
+                                            >
+                                                <option value="paid">
+                                                    Paid
+                                                </option>
+                                                <option value="pending">
+                                                    Pending
+                                                </option>
+                                                <option value="failed">
+                                                    Failed
+                                                </option>
+                                                <option value="refunded">
+                                                    Refunded
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="block text-sm font-medium dark:text-gray-300">
+                                                Subtotal
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={editData.subtotal}
+                                                onChange={(e) =>
+                                                    handlePriceChange(
+                                                        "subtotal",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-gray-700 dark:text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium dark:text-gray-300">
+                                                Delivery Fee
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={editData.delivery_fee}
+                                                onChange={(e) =>
+                                                    handlePriceChange(
+                                                        "delivery_fee",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800 dark:border-gray-700 dark:text-white"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase">
+                                            Grand Total
+                                        </label>
+                                        <span className="text-2xl font-bold text-blue-600">
+                                            ৳
+                                            {parseFloat(
+                                                editData.grand_total,
+                                            ).toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Payment Status */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Payment Status
-                                </label>
-                                <select
-                                    value={editData.payment_status}
-                                    onChange={(e) =>
-                                        setEditData(
-                                            "payment_status",
-                                            e.target.value,
-                                        )
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-slate-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="paid">Paid</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="failed">Failed</option>
-                                    <option value="refunded">Refunded</option>
-                                </select>
-                                {editErrors.payment_status && (
-                                    <div className="text-red-500 text-xs mt-1">
-                                        {editErrors.payment_status}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Modal Actions */}
-                            <div className="flex justify-end gap-3 mt-6">
+                            <div className="flex justify-end gap-3 mt-8 pt-4 border-t dark:border-gray-800">
                                 <button
                                     type="button"
                                     onClick={closeEditModal}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg dark:bg-gray-800 dark:text-gray-300"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={editProcessing}
-                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
+                                    className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
                                 >
                                     {editProcessing
-                                        ? "Updating..."
-                                        : "Update Status"}
+                                        ? "Saving..."
+                                        : "Update Order"}
                                 </button>
                             </div>
                         </form>

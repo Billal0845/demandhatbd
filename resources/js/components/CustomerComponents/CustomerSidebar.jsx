@@ -1,12 +1,23 @@
 import React from "react";
 import { Link, usePage } from "@inertiajs/react";
+import {
+    FiX,
+    FiHome,
+    FiTag,
+    FiGrid,
+    FiBox,
+    FiInfo,
+    FiMessageSquare,
+} from "react-icons/fi";
+
 export default function Sidebar({ isOpen, onClose }) {
     const { url } = usePage();
+
     return (
         <>
             {/* Backdrop */}
             <div
-                className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-200 ${
+                className={`fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm transition-opacity duration-300 ${
                     isOpen
                         ? "opacity-100 visible"
                         : "opacity-0 invisible pointer-events-none"
@@ -15,49 +26,47 @@ export default function Sidebar({ isOpen, onClose }) {
             />
             {/* Drawer */}
             <aside
-                className={`fixed top-0 left-0 h-full  w-40 lg:w-50 bg-white dark:bg-[#1F2937] shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+                className={`fixed top-0 left-0 h-full w-72 bg-white dark:bg-[#1F2937] shadow-2xl z-[70] transform transition-transform duration-300 ease-out ${
                     isOpen ? "translate-x-0" : "-translate-x-full"
                 }`}
             >
-                <div className="h-16 flex items-center justify-between px-6 border-b border-gray-100 dark:border-[#374151]">
-                    <span className="text-xl font-bold tracking-wide text-black dark:text-white">
-                        SURA
-                        <span className="text-[#7CA66E] dark:text-[#8FBA81]">
-                            BIL
-                        </span>
+                <div className="h-20 flex items-center justify-between px-6 border-b dark:border-gray-700">
+                    <span className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                        DEMAND<span className="text-[#658C58]">HAT</span>
                     </span>
                     <button
                         onClick={onClose}
-                        className="text-gray-500 dark:text-[#D1D5DB] hover:text-[#658C58] dark:hover:text-[#7CA66E] transition"
+                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-6 w-6"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
+                        <FiX size={24} className="text-gray-500" />
                     </button>
                 </div>
-                <nav className="flex flex-col  p-4 space-y-2">
+
+                <nav className="p-4 space-y-1">
+                    <p className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                        Main Menu
+                    </p>
                     <SidebarLink
                         href="/"
                         active={url === "/"}
                         onClick={onClose}
+                        icon={<FiHome />}
                     >
                         Home
+                    </SidebarLink>
+                    <SidebarLink
+                        href="/productspage"
+                        active={url === "/productspage"}
+                        onClick={onClose}
+                        icon={<FiBox />}
+                    >
+                        Products
                     </SidebarLink>
                     <SidebarLink
                         href="/offers"
                         active={url.startsWith("/offers")}
                         onClick={onClose}
+                        icon={<FiTag />}
                     >
                         Offers
                     </SidebarLink>
@@ -65,26 +74,50 @@ export default function Sidebar({ isOpen, onClose }) {
                         href="/categories"
                         active={url.startsWith("/categories")}
                         onClick={onClose}
+                        icon={<FiGrid />}
                     >
                         Categories
                     </SidebarLink>
+
+                    <div className="my-4 border-t dark:border-gray-700 pt-4">
+                        <p className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                            Company
+                        </p>
+                        <SidebarLink
+                            href="/about"
+                            active={url === "/about"}
+                            onClick={onClose}
+                            icon={<FiInfo />}
+                        >
+                            About Us
+                        </SidebarLink>
+                        {/* <SidebarLink
+                            href="/ReqProduct"
+                            active={url === "/ReqProduct"}
+                            onClick={onClose}
+                            icon={<FiMessageSquare />}
+                        >
+                            Request Product
+                        </SidebarLink> */}
+                    </div>
                 </nav>
             </aside>
         </>
     );
 }
-// Helper component for cleaner links
-function SidebarLink({ href, active, children, onClick }) {
+
+function SidebarLink({ href, active, children, onClick, icon }) {
     return (
         <Link
             href={href}
             onClick={onClick}
-            className={`px-4 py-3 rounded-lg font-medium transition-colors ${
+            className={`flex items-center gap-4 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
                 active
-                    ? "bg-[#E8F5E3] text-[#658C58] dark:bg-[#374151] dark:text-[#8FBA81]"
-                    : "text-gray-700 dark:text-[#D1D5DB] hover:bg-gray-100 dark:hover:bg-[#374151]"
+                    ? "bg-[#658C58] text-white shadow-md shadow-[#658C58]/30"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
             }`}
         >
+            <span className="text-xl">{icon}</span>
             {children}
         </Link>
     );

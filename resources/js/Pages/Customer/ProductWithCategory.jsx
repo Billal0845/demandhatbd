@@ -9,19 +9,16 @@ import ReactPixel from "react-facebook-pixel";
 function ProductWithCategory({ products, name }) {
     const { url } = usePage();
 
-    // Extract query params for initial state
     const queryParams = new URLSearchParams(window.location.search);
     const initialMin = queryParams.get("min_price") || "";
     const initialMax = queryParams.get("max_price") || "";
     const initialSort = queryParams.get("sort") || "default";
 
-    // State
     const [minPrice, setMinPrice] = useState(initialMin);
     const [maxPrice, setMaxPrice] = useState(initialMax);
     const [sortBy, setSortBy] = useState(initialSort);
     const [showMobileFilter, setShowMobileFilter] = useState(false);
 
-    // Sort Options
     const sortOptions = [
         { label: "Default", value: "default" },
         { label: "Newest First", value: "date_desc" },
@@ -32,32 +29,24 @@ function ProductWithCategory({ products, name }) {
         { label: "Price Low to High", value: "price_asc" },
     ];
 
-    // Handle Filter Apply
     const applyFilters = (newSort = sortBy, min = minPrice, max = maxPrice) => {
         router.get(
             window.location.pathname,
-            {
-                sort: newSort,
-                min_price: min,
-                max_price: max,
-            },
+            { sort: newSort, min_price: min, max_price: max },
             { preserveScroll: true, preserveState: true },
         );
     };
 
-    // Handle Sort Change
     const handleSortChange = (e) => {
         const newSort = e.target.value;
         setSortBy(newSort);
         applyFilters(newSort, minPrice, maxPrice);
     };
 
-    // Handle Price Apply
     const handlePriceFilter = () => {
         applyFilters(sortBy, minPrice, maxPrice);
     };
 
-    // Handle Clear Filters
     const clearFilters = () => {
         setMinPrice("");
         setMaxPrice("");
@@ -65,7 +54,8 @@ function ProductWithCategory({ products, name }) {
         router.get(window.location.pathname, {}, { preserveScroll: true });
     };
 
-    const handleAddToCart = (productId) => {
+    // UPDATED: Syncing logic with SectionCard
+    const handleAddToCart = (productId, shouldRedirect = false) => {
         const productToAdd = products?.data?.find((p) => p.id === productId);
 
         if (!productToAdd) return;
@@ -75,7 +65,6 @@ function ProductWithCategory({ products, name }) {
             return;
         }
 
-        // --- 1. Calculate Discount for Pixel Tracking ---
         const discountPercentage = productToAdd.discount
             ? Number(productToAdd.discount)
             : 0;
@@ -83,15 +72,13 @@ function ProductWithCategory({ products, name }) {
         const discountedPrice =
             originalPrice - originalPrice * (discountPercentage / 100);
 
-        if (productToAdd) {
-            ReactPixel.track("AddToCart", {
-                currency: "BDT", // Consistent with other files
-                value: discountedPrice, // Track actual price
-                content_name: productToAdd.name,
-                content_ids: [productToAdd.id],
-                content_type: "product",
-            });
-        }
+        ReactPixel.track("AddToCart", {
+            currency: "BDT",
+            value: discountedPrice,
+            content_name: productToAdd.name,
+            content_ids: [productToAdd.id],
+            content_type: "product",
+        });
 
         router.post(
             "/cart/add",
@@ -99,14 +86,18 @@ function ProductWithCategory({ products, name }) {
             {
                 preserveScroll: true,
                 preserveState: true,
-                onSuccess: () => toast.success("Successfully Added to Cart!"),
+                onSuccess: () => {
+                    if (shouldRedirect) {
+                        router.visit("/checkout");
+                    } else {
+                        toast.success("Successfully Added to Cart!");
+                    }
+                },
             },
         );
     };
 
-    // Safety check
     if (!products || !products.data) return null;
-
     const hasActivePriceFilter = minPrice || maxPrice;
 
     return (
@@ -115,7 +106,6 @@ function ProductWithCategory({ products, name }) {
             <div className="mx-auto max-w-[1200px]">
                 <div className="mx-auto mt-5 px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col lg:flex-row gap-8">
-                        {/* LEFT COLUMN: Sidebar (Desktop) */}
                         <aside className="hidden lg:block">
                             <FilterSidebar
                                 minPrice={minPrice}
@@ -126,42 +116,37 @@ function ProductWithCategory({ products, name }) {
                             />
                         </aside>
 
-                        {/* RIGHT COLUMN: Main Content */}
                         <div className="flex-1">
-                            {/* Header: Title & Sort */}
+                            {/* Header Section */}
                             <div className="mb-6">
                                 <h1 className="text-3xl font-bold text-gray-900 font-inter dark:text-white mb-2">
                                     {name}
                                 </h1>
-
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <span className="text-sm text-gray-500 dark:text-gray-400">
                                         {products.total} items found in {name}
                                     </span>
-
                                     <div className="flex items-center gap-4">
-                                        {/* Mobile Filter Toggle */}
                                         <button
-                                            className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#111827] text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                                            className="lg:hidden flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#111827] text-gray-700 dark:text-gray-200"
                                             onClick={() =>
                                                 setShowMobileFilter(true)
                                             }
                                         >
                                             <BsFilter size={16} />
-                                            <span className="text-lg font-semibold">
+                                            <span className="font-semibold">
                                                 Filters
                                             </span>
                                         </button>
 
-                                        {/* Sort Dropdown */}
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm font-inter text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                                                Sort By:
+                                            <span className="text-sm font-inter text-gray-600 dark:text-gray-400">
+                                                Sort:
                                             </span>
                                             <select
                                                 value={sortBy}
                                                 onChange={handleSortChange}
-                                                className="border border-gray-300 font-inter dark:border-gray-600 rounded p-2 text-sm focus:ring-green-500 focus:border-green-500 dark:bg-gray-800 dark:text-white min-w-[120px]"
+                                                className="border border-gray-300 font-inter dark:border-gray-600 rounded p-2 text-sm dark:bg-gray-800 dark:text-white"
                                             >
                                                 {sortOptions.map((opt) => (
                                                     <option
@@ -175,41 +160,11 @@ function ProductWithCategory({ products, name }) {
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Active Filters Display */}
-                                {hasActivePriceFilter && (
-                                    <div className="mt-4 flex items-center gap-2 flex-wrap text-sm">
-                                        <span className="text-gray-600 font-inter dark:text-gray-400">
-                                            Filtered By:
-                                        </span>
-                                        <div className="flex items-center bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">
-                                            <span className="mr-2 font-inter dark:text-gray-200">
-                                                Price: {minPrice || "0"} -{" "}
-                                                {maxPrice || "∞"}
-                                            </span>
-                                            <button
-                                                onClick={clearFilters}
-                                                className="text-red-500 hover:text-red-700"
-                                            >
-                                                <div className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                                    <BsX size={18} />
-                                                </div>
-                                            </button>
-                                        </div>
-                                        <button
-                                            onClick={clearFilters}
-                                            className="text-red-500 hover:underline text-sm font-medium font-inter ml-2"
-                                        >
-                                            Clear All
-                                        </button>
-                                    </div>
-                                )}
                             </div>
 
-                            {/* PRODUCT GRID */}
+                            {/* PRODUCT GRID - UPDATED UI */}
                             <div className="grid font-inter gap-4 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                                 {products.data.map((product) => {
-                                    // --- 2. Calculation Logic for Display ---
                                     const discountPercentage = product.discount
                                         ? Number(product.discount)
                                         : 0;
@@ -222,10 +177,9 @@ function ProductWithCategory({ products, name }) {
                                     return (
                                         <div
                                             key={product.id}
-                                            className="group relative flex flex-col bg-white dark:bg-[#1F2937] rounded-xl border border-gray-200 dark:border-[#374151] shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+                                            className="group relative flex flex-col bg-white dark:bg-[#1F2937] rounded-xl border border-gray-200 dark:border-[#374151] shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
                                         >
-                                            {/* --- 3. Discount Badge (Top Left) --- */}
-                                            {/* Always show badge logic: -X% or 0% */}
+                                            {/* Discount Badge */}
                                             <div className="absolute top-0 left-0 z-10 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-br-lg shadow-sm">
                                                 {discountPercentage > 0
                                                     ? `-${discountPercentage}%`
@@ -234,33 +188,31 @@ function ProductWithCategory({ products, name }) {
 
                                             <Link
                                                 href={`/product/${product.id}`}
-                                                className="flex flex-col h-full"
+                                                className="flex flex-col flex-1"
                                             >
                                                 {/* Image Area */}
-                                                <div className="relative h-48 w-full p-4 bg-white dark:bg-[#374151] flex items-center justify-center">
+                                                <div className="relative h-48 w-full p-2 bg-gray-50 dark:bg-[#374151] flex items-center justify-center">
                                                     <img
                                                         src={`/storage/${product.image}`}
                                                         alt={product.name}
-                                                        className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
+                                                        className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-500"
                                                     />
                                                 </div>
 
                                                 {/* Content Area */}
-                                                <div className="p-3 flex flex-col flex-1 border-t border-gray-100 dark:border-gray-700">
-                                                    <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm line-clamp-2 mb-1 group-hover:text-[#658C58] dark:group-hover:text-[#7CA66E] transition-colors">
+                                                <div className="p-3 flex flex-col flex-1">
+                                                    <h3 className="font-bold text-gray-900 dark:text-[#F9FAFB] text-sm mb-1 line-clamp-1 group-hover:text-green-600 transition-colors">
                                                         {product.name}
                                                     </h3>
 
                                                     <div className="mt-auto">
-                                                        <div className="flex flex-col">
-                                                            {/* --- 4. Price Display --- */}
+                                                        <div className="flex items-center gap-2 mb-2">
                                                             <span className="font-bold text-[#658C58] dark:text-[#7CA66E] text-lg">
                                                                 Tk{" "}
                                                                 {Math.round(
                                                                     discountedPrice,
                                                                 )}
                                                             </span>
-
                                                             {discountPercentage >
                                                                 0 && (
                                                                 <span className="text-gray-400 text-xs line-through">
@@ -271,19 +223,41 @@ function ProductWithCategory({ products, name }) {
                                                                 </span>
                                                             )}
                                                         </div>
+
+                                                        {/* Order Now Button (Redirects to checkout) */}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                handleAddToCart(
+                                                                    product.id,
+                                                                    true,
+                                                                );
+                                                            }}
+                                                            className="w-full bg-green-600 text-white hover:bg-green-700 font-bold py-2 rounded transition-colors text-sm"
+                                                        >
+                                                            অর্ডার করুন
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </Link>
 
+                                            {/* Floating Add to Cart Icon (Shows toast only) */}
                                             <button
                                                 onClick={(e) => {
+                                                    e.preventDefault();
                                                     e.stopPropagation();
-                                                    handleAddToCart(product.id);
+                                                    handleAddToCart(
+                                                        product.id,
+                                                        false,
+                                                    );
                                                 }}
-                                                className="absolute bottom-3 right-3 flex items-center justify-center h-9 w-9 rounded-full bg-white dark:bg-[#111827] border border-gray-200 dark:border-[#374151] text-gray-600 dark:text-gray-300 shadow-sm opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:text-[#658C58] hover:shadow-md"
-                                                title="Add to Cart"
+                                                className="absolute top-3 right-3 z-10 bg-[#658C58]/90 text-white p-2 rounded-full shadow-md 
+                                                           opacity-100 lg:opacity-0 lg:group-hover:opacity-100 
+                                                           transform scale-100 lg:scale-90 lg:group-hover:scale-100 
+                                                           transition-all duration-300 hover:bg-[#527043]"
                                             >
-                                                <BsCartPlusFill size={16} />
+                                                <BsCartPlusFill size={18} />
                                             </button>
                                         </div>
                                     );
@@ -297,18 +271,9 @@ function ProductWithCategory({ products, name }) {
                                         key={index}
                                         href={link.url || "#"}
                                         preserveScroll
-                                        preserveState
                                         className={`px-3 py-1 rounded text-sm font-medium transition-colors
-                                        ${
-                                            link.active
-                                                ? "bg-blue-600 text-white border border-blue-600"
-                                                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-                                        }
-                                        ${
-                                            !link.url &&
-                                            "opacity-50 cursor-not-allowed"
-                                        }
-                                    `}
+                                        ${link.active ? "bg-green-600 text-white" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100"}
+                                        ${!link.url && "opacity-50 cursor-not-allowed"}`}
                                         dangerouslySetInnerHTML={{
                                             __html: link.label,
                                         }}
@@ -328,16 +293,14 @@ function ProductWithCategory({ products, name }) {
                         />
                         <div className="absolute left-0 top-0 bottom-0 w-80 bg-white dark:bg-gray-900 p-6 shadow-xl overflow-y-auto">
                             <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-lg font-semibold font-inter text-gray-800 dark:text-gray-100">
+                                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
                                     Filters
                                 </h2>
-
                                 <button
                                     onClick={() => setShowMobileFilter(false)}
+                                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full"
                                 >
-                                    <div className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                        <BsX size={18} />
-                                    </div>
+                                    <BsX size={24} />
                                 </button>
                             </div>
                             <FilterSidebar

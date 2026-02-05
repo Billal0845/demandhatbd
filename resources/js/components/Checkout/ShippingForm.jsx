@@ -1,34 +1,30 @@
 import React from "react";
-import { User, Phone, Mail, MapPin } from "lucide-react";
+import { User, Phone, MapPin, Truck, Banknote } from "lucide-react";
 
-export default function ShippingForm({ data, setData, errors }) {
+export default function ShippingForm({ data, setData, errors, deliveryFee }) {
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sm:p-8 mb-8">
-            <h2 className="text-xl font-bold font-poppins text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+        <div className="font-hindSiliguri bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-6 mb-6">
+            <h2 className="text-xl font-bold  text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                 <span className="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 w-8 h-8 rounded-full flex items-center justify-center text-sm">
                     1
                 </span>
-                Shipping Details
+                Shipping Information
             </h2>
 
-            <div className="grid grid-cols-1 font-work md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 {/* Name */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Full Name
+                <div className="md:col-span-2">
+                    <label className="block  font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        আপনার নাম *
                     </label>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                            <User size={18} />
-                        </div>
-                        <input
-                            type="text"
-                            value={data.name}
-                            onChange={(e) => setData("name", e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
-                            placeholder="John Doe"
-                        />
-                    </div>
+                    <input
+                        type="text"
+                        name="name"
+                        value={data.name}
+                        onChange={(e) => setData("name", e.target.value)}
+                        className="w-full p-1 border rounded-lg border-gray-300 px-3 dark:bg-gray-900 dark:border-gray-600 focus:ring-blue-500"
+                        placeholder="আপনার পূর্ণ নাম লিখুন"
+                    />
                     {errors.name && (
                         <p className="text-red-500 text-xs mt-1">
                             {errors.name}
@@ -38,21 +34,17 @@ export default function ShippingForm({ data, setData, errors }) {
 
                 {/* Phone */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Phone Number
+                    <label className="block  font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        ফোন নম্বর *
                     </label>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                            <Phone size={18} />
-                        </div>
-                        <input
-                            type="text"
-                            value={data.phone}
-                            onChange={(e) => setData("phone", e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
-                            placeholder="017xxxxxxxx"
-                        />
-                    </div>
+                    <input
+                        type="text"
+                        name="phone"
+                        value={data.phone}
+                        onChange={(e) => setData("phone", e.target.value)}
+                        className="w-full p-1 border px-3 rounded-lg border-gray-300 dark:bg-gray-900 dark:border-gray-600 focus:ring-blue-500"
+                        placeholder="আপনার সচল ফোন নম্বর লিখুন"
+                    />
                     {errors.phone && (
                         <p className="text-red-500 text-xs mt-1">
                             {errors.phone}
@@ -60,38 +52,40 @@ export default function ShippingForm({ data, setData, errors }) {
                     )}
                 </div>
 
-                {/* Email */}
+                {/* Address */}
                 <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Email Address
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        ঠিকানা *
                     </label>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                            <Mail size={18} />
-                        </div>
-                        <input
-                            type="email"
-                            value={data.email}
-                            onChange={(e) => setData("email", e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
-                            placeholder="you@example.com"
-                        />
-                    </div>
-                    {errors.email && (
+                    <textarea
+                        value={data.address}
+                        onChange={(e) => setData("address", e.target.value)}
+                        className="w-full border p-1 rounded-lg border-gray-300 dark:bg-gray-900 dark:border-gray-600 focus:ring-blue-500"
+                        rows="1"
+                        name="address"
+                        placeholder="বাসার নম্বর/গ্রাম, রোড নম্বর/ইউনিয়ন,থানা, জেলা"
+                    />
+                    {errors.address && (
                         <p className="text-red-500 text-xs mt-1">
-                            {errors.email}
+                            {errors.address}
                         </p>
                     )}
                 </div>
 
-                {/* Delivery Area */}
-                <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Delivery Area <span className="text-red-500">*</span>
+                {/* DELIVERY AREA RADIO BUTTONS */}
+                <div className="md:col-span-2 mt-1 sm:mt-4">
+                    <label className="block  font-bold text-gray-700 dark:text-gray-300 mb-3">
+                        ডেলিভারি এরিয়া সিলেক্ট করুন *
                     </label>
-
-                    <div className="flex gap-6 pl-1">
-                        <label className="flex items-center gap-2 cursor-pointer">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                        {/* Inside Dhaka */}
+                        <label
+                            className={`flex items-center p-1 sm:p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                                data.delivery_area === "inside_dhaka"
+                                    ? "border-green-600 bg-green-50 dark:bg-green-900/20"
+                                    : "border-gray-200 dark:border-gray-700 hover:border-green-300"
+                            }`}
+                        >
                             <input
                                 type="radio"
                                 name="delivery_area"
@@ -100,14 +94,23 @@ export default function ShippingForm({ data, setData, errors }) {
                                 onChange={(e) =>
                                     setData("delivery_area", e.target.value)
                                 }
-                                className="text-blue-600 focus:ring-blue-500"
+                                className="sm:w-5 sm:h-5 w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
                             />
-                            <span className="text-sm text-gray-700 dark:text-gray-300">
-                                Inside Dhaka
-                            </span>
+                            <div className=" ml-2 sm:ml-3">
+                                <span className="block font-bold text-gray-900 dark:text-white">
+                                    ঢাকার ভিতরে
+                                </span>
+                            </div>
                         </label>
 
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        {/* Outside Dhaka */}
+                        <label
+                            className={`flex items-center sm:p-4 p-1 border-2 rounded-xl cursor-pointer transition-all ${
+                                data.delivery_area === "outside_dhaka"
+                                    ? "border-green-600 bg-green-50 dark:bg-green-900/20"
+                                    : "border-gray-200 dark:border-gray-700 hover:border-green-300"
+                            }`}
+                        >
                             <input
                                 type="radio"
                                 name="delivery_area"
@@ -116,43 +119,32 @@ export default function ShippingForm({ data, setData, errors }) {
                                 onChange={(e) =>
                                     setData("delivery_area", e.target.value)
                                 }
-                                className="text-blue-600 focus:ring-blue-500"
+                                className="sm:w-5 sm:h-5 w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
                             />
-                            <span className="text-sm text-gray-700 dark:text-gray-300">
-                                Outside Dhaka
-                            </span>
+                            <div className="ml-3">
+                                <span className="block font-bold text-gray-900 dark:text-white">
+                                    ঢাকার বাইরে
+                                </span>
+                            </div>
                         </label>
                     </div>
 
+                    {/* Delivery Fee Notice (Displayed below radios) */}
+                    {/* {data.delivery_area && (
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg flex justify-between items-center">
+                            <span className="text-blue-800 dark:text-blue-300 font-medium">
+                                ডেলিভারি চার্জ:
+                            </span>
+                            <span className="text-xl font-bold text-blue-900 dark:text-white">
+                                TK {deliveryFee}
+                            </span>
+                        </div>
+                    )}
                     {errors.delivery_area && (
                         <p className="text-red-500 text-xs mt-1">
                             {errors.delivery_area}
                         </p>
-                    )}
-                </div>
-
-                {/* Address */}
-                <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Full Delivery Address
-                    </label>
-                    <div className="relative">
-                        <div className="absolute top-3 left-3 pointer-events-none text-gray-400">
-                            <MapPin size={18} />
-                        </div>
-                        <textarea
-                            rows="3"
-                            value={data.address}
-                            onChange={(e) => setData("address", e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
-                            placeholder="Full address (House, Road, City)"
-                        ></textarea>
-                    </div>
-                    {errors.address && (
-                        <p className="text-red-500 text-xs mt-1">
-                            {errors.address}
-                        </p>
-                    )}
+                    )} */}
                 </div>
             </div>
         </div>

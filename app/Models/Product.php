@@ -35,6 +35,13 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
+
+
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class);
+    }
+
     protected $casts = [
         'price' => 'decimal:2', // Ensures price always has 2 decimal places (e.g. 10.00)
         'weight' => 'float',

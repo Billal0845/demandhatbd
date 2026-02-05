@@ -1,16 +1,12 @@
-import React from "react";
+import React, { useEffect } from "react";
 import CustomerLayout from "@/Layouts/CustomerLayouts/CustomerLayout";
 import { Head } from "@inertiajs/react";
 import { Toaster } from "react-hot-toast";
-import NewArrivals from "../../components/CustomerComponents/NewArraivals";
 import CategoriesSection from "../../components/CustomerComponents/CategoriesSection";
-
 import HeroBanner from "../../components/CustomerComponents/HeroBanner";
-import KidZone from "../../components/CustomerComponents/KidZone";
-import Winter from "@/components/CustomerComponents/Winter";
 import Section from "@/components/CustomerComponents/Section";
-import { useEffect } from "react";
 import ReactPixel from "react-facebook-pixel";
+import Marqueee from "@/components/CustomerComponents/Marqueee";
 
 const LandingPage = ({
     products = [],
@@ -20,27 +16,47 @@ const LandingPage = ({
 }) => {
     useEffect(() => {
         if (!products || products.length === 0) return;
-
-        // Map all product IDs on the page
         const contentIds = products.map((p) => p.id);
-
         ReactPixel.track("ViewContent", {
-            content_ids: contentIds, // Array of product IDs
-            content_name: "Landing Page", // Optional descriptive name
-            content_type: "product", // Always good to add
+            content_ids: contentIds,
+            content_name: "Landing Page",
+            content_type: "product",
         });
-    }, [products]); // Fire when products change
+    }, [products]);
+
+    // 1. Filter products that belong to the "Offer" category
+    // Note: This requires the controller to use ->with('category')
+    const offerProducts = products.filter(
+        (product) => product.category?.name === "Offer",
+    );
+
+    // 2. Find the Offer Category ID for the "View All" link
+    const offerCategory = categories.find((cat) => cat.name === "Offer");
 
     return (
         <>
             <Head title="Home" />
             <div className="bg-gray-200 dark:bg-[#0F1A0D]">
-                {/* CHANGED: Removed max-w-7xl mx-auto. Added w-full */}
-                <div className="w-full  mx-auto">
+                <div className="w-full mx-auto">
                     <Toaster />
+
+                    {/* Hero & Marquee */}
                     <HeroBanner heroes={heroes} />
+                    <Marqueee />
+
+                    {/* Categories Circle Section */}
                     <CategoriesSection categoriesComing={categories} />
 
+                    {/* EXCLUSIVE OFFER SECTION: Placed specifically at the top */}
+                    {offerProducts.length > 0 && (
+                        <Section
+                            sectionname="আজকের অফার"
+                            overrideProducts={offerProducts}
+                            catid={offerCategory?.id}
+                        />
+                    )}
+
+                    {/* DYNAMIC SECTIONS: Loaded from LandingSection table */}
                     {sections.map((section) => (
                         <Section
                             key={section.id}
@@ -50,25 +66,7 @@ const LandingPage = ({
                         />
                     ))}
 
-                    {/* <Section
-                        products={products}
-                        sectionname={"Kid Zone"}
-                        catid={13}
-                    />
-
-                    <Section
-                        products={products}
-                        sectionname={"Winter Collection"}
-                        catid={11}
-                    />
-
-                    <NewArrivals products={products} />
-
-                    <Section
-                        products={products}
-                        sectionname={"Electronics"}
-                        catid={10}
-                    /> */}
+                    {/* Any other static sections like NewArrivals would go here */}
                 </div>
             </div>
         </>

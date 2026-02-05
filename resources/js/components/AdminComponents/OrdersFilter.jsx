@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { router } from "@inertiajs/react";
+import { router, usePage } from "@inertiajs/react"; // 1. Import usePage
 import {
     FiSearch,
     FiFilter,
@@ -9,54 +9,52 @@ import {
 } from "react-icons/fi";
 
 export default function OrdersFilter({ filters, employees, onAssignClick }) {
+    // 2. Get User Role
+    const { auth } = usePage().props;
+    const isEmployee = auth.user.role === "employee";
+
     // State Initialization
     const [searchTerm, setSearchTerm] = useState(filters?.search || "");
     const [orderStatus, setOrderStatus] = useState(filters?.order_status || "");
     const [paymentStatus, setPaymentStatus] = useState(
         filters?.payment_status || "",
     );
+    const [unassignedOnly, setUnassignedOnly] = useState(
+        filters?.unassigned_only === "true",
+    );
     const [dateFilter, setDateFilter] = useState(filters?.date_filter || "");
     const [startDate, setStartDate] = useState(filters?.start_date || "");
     const [endDate, setEndDate] = useState(filters?.end_date || "");
     const [showFilters, setShowFilters] = useState(false);
 
-    // Debounced search (remains the same)
+    // Debounced search
     useEffect(() => {
         const timer = setTimeout(() => {
             if (searchTerm !== (filters?.search || "")) {
-                // For search, we rely on the state because of the debounce delay
                 triggerFilterRequest({ search: searchTerm });
             }
         }, 500);
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
-    /**
-     * CORE FIX: triggerFilterRequest
-     * This function accepts 'newValues' to override the current state.
-     * This ensures we send the value the user JUST clicked, not the old state.
-     */
     const triggerFilterRequest = (newValues = {}) => {
         const params = {
             search: searchTerm,
             order_status: orderStatus,
             payment_status: paymentStatus,
             date_filter: dateFilter,
+            unassigned_only: unassignedOnly,
             sort_by: filters?.sort_by,
             sort_order: filters?.sort_order,
-            ...newValues, // <--- This overrides current state with the new selection
+            ...newValues,
         };
 
-        // Handle Custom Date Range logic
-        // If date_filter is custom, we only send start/end if they exist
         if ((newValues.date_filter || dateFilter) === "custom") {
-            // Only attach dates if they are set
             if (startDate || newValues.start_date)
                 params.start_date = newValues.start_date || startDate;
             if (endDate || newValues.end_date)
                 params.end_date = newValues.end_date || endDate;
 
-            // If custom is selected but dates are missing, don't auto-submit unless clicked "Apply"
             if (
                 (!params.start_date || !params.end_date) &&
                 !newValues.force_submit
@@ -65,7 +63,6 @@ export default function OrdersFilter({ filters, employees, onAssignClick }) {
             }
         }
 
-        // Clean up parameters (remove force_submit helper)
         delete params.force_submit;
 
         router.get("/admin/orders", params, {
@@ -75,6 +72,7 @@ export default function OrdersFilter({ filters, employees, onAssignClick }) {
     };
 
     const clearFilters = () => {
+        setUnassignedOnly(false);
         setSearchTerm("");
         setOrderStatus("");
         setPaymentStatus("");
@@ -104,8 +102,8 @@ export default function OrdersFilter({ filters, employees, onAssignClick }) {
 
                 {/* Buttons Group */}
                 <div className="flex flex-wrap items-center gap-3">
-                    {/* Assign Button */}
-                    {employees && (
+                    {/* 3. Assign Button - HIDDEN for Employees */}
+                    {!isEmployee && employees && (
                         <button
                             onClick={onAssignClick}
                             className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium shadow-sm hover:shadow-md"
@@ -117,14 +115,18 @@ export default function OrdersFilter({ filters, employees, onAssignClick }) {
                         </button>
                     )}
 
-                    {/* Export PDF Button */}
-                    <button
-                        onClick={handleExportPdf}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium shadow-sm hover:shadow-md"
-                    >
-                        <FiDownload size={18} />
-                        <span className="whitespace-nowrap">Export PDF</span>
-                    </button>
+                    {/* 4. Export PDF Button - HIDDEN for Employees */}
+                    {!isEmployee && (
+                        <button
+                            onClick={handleExportPdf}
+                            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium shadow-sm hover:shadow-md"
+                        >
+                            <FiDownload size={18} />
+                            <span className="whitespace-nowrap">
+                                Export PDF
+                            </span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -144,6 +146,27 @@ export default function OrdersFilter({ filters, employees, onAssignClick }) {
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-200 placeholder-gray-400"
                             />
                         </div>
+
+                        {!isEmployee && (
+                            <label className="flex items-center gap-2 cursor-pointer bg-orange-50 dark:bg-orange-900/20 px-3 py-2 rounded-lg border border-orange-200 dark:border-orange-800">
+                                <input
+                                    type="checkbox"
+                                    checked={unassignedOnly}
+                                    onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setUnassignedOnly(checked);
+                                        triggerFilterRequest({
+                                            unassigned_only: checked,
+                                        });
+                                    }}
+                                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                                />
+                                <span className="text-sm font-medium text-orange-700 dark:text-orange-300 whitespace-nowrap">
+                                    Unassigned Only
+                                </span>
+                            </label>
+                        )}
+
                         <button
                             onClick={() => setShowFilters(!showFilters)}
                             className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
@@ -161,7 +184,6 @@ export default function OrdersFilter({ filters, employees, onAssignClick }) {
                                 onChange={(e) => {
                                     const val = e.target.value;
                                     setOrderStatus(val);
-                                    // PASS NEW VALUE DIRECTLY
                                     triggerFilterRequest({ order_status: val });
                                 }}
                                 className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-slate-900 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -180,7 +202,6 @@ export default function OrdersFilter({ filters, employees, onAssignClick }) {
                                 onChange={(e) => {
                                     const val = e.target.value;
                                     setPaymentStatus(val);
-                                    // PASS NEW VALUE DIRECTLY
                                     triggerFilterRequest({
                                         payment_status: val,
                                     });
@@ -200,7 +221,6 @@ export default function OrdersFilter({ filters, employees, onAssignClick }) {
                                 onChange={(e) => {
                                     const val = e.target.value;
                                     setDateFilter(val);
-                                    // If not custom, trigger immediately
                                     if (val !== "custom") {
                                         triggerFilterRequest({
                                             date_filter: val,

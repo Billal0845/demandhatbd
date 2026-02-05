@@ -1,12 +1,12 @@
 import AdminLayout from "@/Layouts/AdminLayouts/AdminLayout";
 import React, { useState } from "react";
-import { Link, useForm } from "@inertiajs/react"; // 1. Import useForm
-import { FiArrowLeft, FiUploadCloud } from "react-icons/fi";
+import { Link, useForm } from "@inertiajs/react";
+import { FiArrowLeft, FiUploadCloud, FiX, FiPlus } from "react-icons/fi";
 import toast from "react-hot-toast";
 
 function ProductForm({ categories = [] }) {
-    // 2. Setup useForm instead of useState
-    const { data, setData, post, processing, errors } = useForm({
+    // 1. Setup useForm with 'gallery' array
+    const { data, setData, post, processing, errors, reset } = useForm({
         productName: "",
         short_description: "",
         category: "",
@@ -21,65 +21,90 @@ function ProductForm({ categories = [] }) {
         bussiness_class: "",
         productDetails: "",
         discount: "",
-        image: null, // useForm handles null correctly during submission
+        image: null, // Primary Image
+        gallery: [], // Array for multiple images
     });
 
     const [previewImage, setPreviewImage] = useState(null);
+    const [galleryPreviews, setGalleryPreviews] = useState([]);
 
-    // 3. Handle Text Inputs
     const handleChange = (e) => {
         const { name, value } = e.target;
         setData(name, value);
     };
 
-    // 4. Handle File Upload
+    // 2. Handle Primary Image
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            setData("image", file); // Update Inertia form data
-            setPreviewImage(URL.createObjectURL(file)); // Update local preview
+            setData("image", file);
+            setPreviewImage(URL.createObjectURL(file));
         }
     };
 
-    // 5. Submit Form
+    // 3. Handle Multiple Gallery Images
+    const handleGalleryChange = (e) => {
+        const files = Array.from(e.target.files);
+
+        // Update Form Data (Append to existing selection)
+        setData("gallery", [...data.gallery, ...files]);
+
+        // Generate Previews
+        const newPreviews = files.map((file) => URL.createObjectURL(file));
+        setGalleryPreviews([...galleryPreviews, ...newPreviews]);
+    };
+
+    // 4. Remove image from gallery list before submitting
+    const removeGalleryImage = (index) => {
+        const updatedGallery = data.gallery.filter((_, i) => i !== index);
+        const updatedPreviews = galleryPreviews.filter((_, i) => i !== index);
+
+        setData("gallery", updatedGallery);
+        setGalleryPreviews(updatedPreviews);
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
 
         post("/admin/products", {
-            forceFormData: true, // Ensures file upload works
+            forceFormData: true, // Required for file uploads
             onSuccess: () => {
-                toast.success("Product saved successfully!");
-                // Optionally clear image preview here
+                toast.success("Product created successfully!");
+                reset();
+                setPreviewImage(null);
+                setGalleryPreviews([]);
             },
-            // Errors are automatically put into the 'errors' object by useForm
+            onError: () => {
+                toast.error("Please check the form for errors.");
+            },
         });
     };
 
     return (
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto pb-12">
             {/* Header */}
             <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-2xl  font-inter font-bold text-gray-800 dark:text-white">
+                <h2 className="text-2xl font-inter font-bold text-gray-800 dark:text-white">
                     Add New Product
                 </h2>
                 <Link
                     href="/admin/products"
-                    className="flex items-center gap-2  font-inter  text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    className="flex items-center gap-2 font-inter text-gray-600 dark:text-gray-400 hover:text-blue-600 transition-colors"
                 >
                     <FiArrowLeft /> Back to Products
                 </Link>
             </div>
 
-            <div className="bg-white font-poppins dark:bg-slate-950 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
-                <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                        Basic Information
-                    </h3>
-                </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="bg-white font-poppins dark:bg-slate-950 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
+                    <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                            Basic Information
+                        </h3>
+                    </div>
 
-                <form onSubmit={handleSubmit} className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Product Name */}
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Name & Short Description */}
                         <div className="col-span-1 md:col-span-2">
                             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
                                 Product Name
@@ -89,15 +114,11 @@ function ProductForm({ categories = [] }) {
                                 name="productName"
                                 value={data.productName}
                                 onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.productName
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
-                                placeholder="e.g. HP 15-fd0812TU Series 1 Intel Core 5"
+                                className={`w-full p-2.5 bg-gray-50 dark:bg-slate-900 border ${errors.productName ? "border-red-500" : "border-gray-300"} dark:border-gray-700 rounded-lg text-sm dark:text-white`}
+                                placeholder="e.g. Sony PlayStation 5 Console"
                             />
                             {errors.productName && (
-                                <p className="mt-1 text-sm text-red-500">
+                                <p className="text-red-500 text-xs mt-1">
                                     {errors.productName}
                                 </p>
                             )}
@@ -105,31 +126,19 @@ function ProductForm({ categories = [] }) {
 
                         <div className="col-span-1 md:col-span-2">
                             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Short Description{" "}
-                                <span className="text-gray-600">
-                                    (shows on landing page below name)
-                                </span>
+                                Short Description
                             </label>
                             <input
                                 type="text"
                                 name="short_description"
                                 value={data.short_description}
                                 onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.short_description
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
-                                placeholder="HP 15-fd0812TU Series 1 Intel Core 5 120U 8GB RAM, 512GB SSD 15.6 Inch FHD Display Silver Laptop"
+                                className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white"
+                                placeholder="Brief highlight for search results..."
                             />
-                            {errors.short_description && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.short_description}
-                                </p>
-                            )}
                         </div>
 
-                        {/* Category */}
+                        {/* Category & Brand */}
                         <div>
                             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
                                 Category
@@ -138,11 +147,7 @@ function ProductForm({ categories = [] }) {
                                 name="category"
                                 value={data.category}
                                 onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.category
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
+                                className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white"
                             >
                                 <option value="">Select Category</option>
                                 {categories.map((cat) => (
@@ -151,14 +156,8 @@ function ProductForm({ categories = [] }) {
                                     </option>
                                 ))}
                             </select>
-                            {errors.category && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.category}
-                                </p>
-                            )}
                         </div>
 
-                        {/* Brand */}
                         <div>
                             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
                                 Brand
@@ -168,113 +167,60 @@ function ProductForm({ categories = [] }) {
                                 name="brand"
                                 value={data.brand}
                                 onChange={handleChange}
-                                className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                                placeholder="e.g. Apple"
+                                className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white"
                             />
                         </div>
 
-                        {/* Quick View */}
-                        <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Quick View
-                            </label>
-                            <textarea
-                                type="text"
-                                name="quick_view"
-                                rows="6"
-                                cols="15"
-                                value={data.quick_view}
-                                onChange={handleChange}
-                                className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                                placeholder="1.6GHz Quad-Core Processor, 8GB RAM, 256GB SSD"
-                            />
+                        {/* Price, Stock, Discount */}
+                        <div className="grid grid-cols-3 gap-4 col-span-1 md:col-span-2">
+                            <div>
+                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                    Price ($)
+                                </label>
+                                <input
+                                    type="number"
+                                    name="price"
+                                    value={data.price}
+                                    onChange={handleChange}
+                                    className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                    Discount (%)
+                                </label>
+                                <input
+                                    type="number"
+                                    name="discount"
+                                    value={data.discount}
+                                    onChange={handleChange}
+                                    className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                    Stock
+                                </label>
+                                <input
+                                    type="number"
+                                    name="stock"
+                                    value={data.stock}
+                                    onChange={handleChange}
+                                    className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white"
+                                />
+                            </div>
                         </div>
 
-                        {/* Price */}
+                        {/* Business Class & Quick View */}
                         <div>
                             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Price ($)
+                                Business Class
                             </label>
-                            <input
-                                type="number"
-                                name="price"
-                                value={data.price}
-                                onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.price
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
-                                placeholder="0.00"
-                            />
-                            {errors.price && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.price}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Discount(%)
-                            </label>
-                            <input
-                                type="number"
-                                name="discount"
-                                value={data.price}
-                                onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.price
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
-                                placeholder="10"
-                            />
-                            {errors.price && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.discount}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Stock */}
-                        <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Stock Quantity
-                            </label>
-                            <input
-                                type="number"
-                                name="stock"
-                                value={data.stock}
-                                onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.stock
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
-                                placeholder="0"
-                            />
-                            {errors.stock && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.stock}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Bussiness Class
-                            </label>
-
                             <select
                                 name="bussiness_class"
                                 value={data.bussiness_class}
                                 onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.bussiness_class
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
+                                className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white"
                             >
                                 <option value="">Select Class</option>
                                 <option value="free">Free</option>
@@ -282,160 +228,222 @@ function ProductForm({ categories = [] }) {
                                 <option value="medium">Medium</option>
                                 <option value="high">High</option>
                             </select>
-
-                            {errors.bussiness_class && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.bussiness_class}
-                                </p>
-                            )}
                         </div>
 
-                        {/* Dimensions & Color (Optional) */}
-                        <div className="grid grid-cols-2 gap-4 col-span-1 md:col-span-2 border-t dark:border-gray-800 pt-4 mt-2">
-                            <div>
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                    Color
-                                </label>
-                                <input
-                                    type="text"
-                                    name="color"
-                                    value={data.color}
-                                    onChange={handleChange}
-                                    className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5"
-                                    placeholder="e.g Magenta"
-                                />
-                            </div>
-                            <div>
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                    Weight (kg)
-                                </label>
-                                <input
-                                    type="number"
-                                    name="weight"
-                                    value={data.weight}
-                                    onChange={handleChange}
-                                    className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5"
-                                    placeholder="1.3"
-                                />
-                            </div>
-                            <div>
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                    Length (cm)
-                                </label>
-                                <input
-                                    type="number"
-                                    name="length"
-                                    value={data.length}
-                                    onChange={handleChange}
-                                    className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5"
-                                    placeholder="24"
-                                />
-                            </div>
-                            <div>
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                    Width (cm)
-                                </label>
-                                <input
-                                    type="number"
-                                    name="width"
-                                    value={data.width}
-                                    onChange={handleChange}
-                                    className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5"
-                                    placeholder="23"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Details */}
-                        <div className="col-span-1 md:col-span-2">
+                        <div>
                             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Product Details
+                                Quick View / Key Features
                             </label>
                             <textarea
-                                name="productDetails"
-                                rows="6"
-                                value={data.productDetails}
+                                name="quick_view"
+                                rows="3"
+                                value={data.quick_view}
                                 onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.productDetails
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
-                                placeholder="Write a description..."
-                            />
-                            {errors.productDetails && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.productDetails}
-                                </p>
-                            )}
+                                className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white"
+                                placeholder="Bullet points..."
+                            ></textarea>
                         </div>
+                    </div>
+                </div>
 
-                        {/* Image Upload */}
-                        <div className="col-span-1 md:col-span-2">
+                {/* IMAGES SECTION */}
+                <div className="bg-white dark:bg-slate-950 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                        Product Media
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Primary Image Upload */}
+                        <div>
                             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Product Image
+                                Main Thumbnail
                             </label>
-                            <div className="flex items-center justify-center w-full">
-                                <label
-                                    className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-slate-900 hover:bg-gray-100 dark:hover:bg-slate-800 ${
-                                        errors.image
-                                            ? "border-red-500"
-                                            : "border-gray-300 dark:border-gray-700"
-                                    }`}
-                                >
-                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        {previewImage ? (
-                                            <img
-                                                src={previewImage}
-                                                alt="Preview"
-                                                className="h-20 object-contain"
-                                            />
-                                        ) : (
-                                            <>
-                                                <FiUploadCloud className="w-8 h-8 rounded-sm mb-2 text-gray-500 dark:text-gray-400" />
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                    <span className="font-semibold">
-                                                        Click to upload
-                                                    </span>{" "}
-                                                    or drag and drop
-                                                </p>
-                                            </>
-                                        )}
+                            <div className="relative group border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-slate-900 flex flex-col items-center justify-center min-h-[200px]">
+                                {previewImage ? (
+                                    <div className="relative w-full">
+                                        <img
+                                            src={previewImage}
+                                            alt="Preview"
+                                            className="h-40 mx-auto object-contain rounded"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPreviewImage(null);
+                                                setData("image", null);
+                                            }}
+                                            className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-full"
+                                        >
+                                            <FiX />
+                                        </button>
                                     </div>
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        onChange={handleImageChange}
-                                        accept="image/*"
-                                    />
-                                </label>
+                                ) : (
+                                    <>
+                                        <FiUploadCloud className="w-10 h-10 text-gray-400 mb-2" />
+                                        <p className="text-xs text-gray-500">
+                                            Upload Main Image (3MB Max)
+                                        </p>
+                                        <input
+                                            type="file"
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            onChange={handleImageChange}
+                                            accept="image/*"
+                                        />
+                                    </>
+                                )}
                             </div>
                             {errors.image && (
-                                <p className="mt-1 text-sm text-red-500">
+                                <p className="text-red-500 text-xs mt-1">
                                     {errors.image}
                                 </p>
                             )}
                         </div>
+
+                        {/* Gallery Upload */}
+                        <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                Gallery Images
+                            </label>
+                            <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-slate-900 flex flex-col items-center justify-center min-h-[200px]">
+                                <FiPlus className="w-10 h-10 text-gray-400 mb-2" />
+                                <p className="text-xs text-gray-500 text-center">
+                                    Click to add multiple gallery images
+                                </p>
+                                <input
+                                    type="file"
+                                    multiple
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    onChange={handleGalleryChange}
+                                    accept="image/*"
+                                />
+                            </div>
+                            {errors.gallery && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.gallery}
+                                </p>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Footer / Buttons */}
-                    <div className="flex items-center justify-end gap-4 mt-8 pt-4 border-t border-gray-200 dark:border-gray-800">
-                        <Link
-                            href="/admin/products"
-                            className="text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none border border-gray-300 dark:border-gray-600"
-                        >
-                            Cancel
-                        </Link>
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 disabled:opacity-50"
-                        >
-                            {processing ? "Saving..." : "Save Product"}
-                        </button>
+                    {/* Gallery Previews Display */}
+                    {galleryPreviews.length > 0 && (
+                        <div className="mt-6">
+                            <p className="text-sm font-medium mb-3 text-gray-700 dark:text-gray-400">
+                                Gallery Preview ({galleryPreviews.length})
+                            </p>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 border dark:border-gray-800 p-4 rounded-lg">
+                                {galleryPreviews.map((src, index) => (
+                                    <div
+                                        key={index}
+                                        className="relative group aspect-square bg-gray-100 dark:bg-slate-900 rounded-md overflow-hidden border dark:border-gray-700"
+                                    >
+                                        <img
+                                            src={src}
+                                            className="w-full h-full object-cover"
+                                            alt="Gallery preview"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                removeGalleryImage(index)
+                                            }
+                                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <FiX size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Additional Details & Dimensions */}
+                <div className="bg-white dark:bg-slate-950 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                        Technical Details
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div>
+                            <label className="block mb-1 text-xs font-medium dark:text-gray-400">
+                                Color
+                            </label>
+                            <input
+                                type="text"
+                                name="color"
+                                value={data.color}
+                                onChange={handleChange}
+                                className="w-full p-2 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded text-sm dark:text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block mb-1 text-xs font-medium dark:text-gray-400">
+                                Weight (kg)
+                            </label>
+                            <input
+                                type="number"
+                                name="weight"
+                                value={data.weight}
+                                onChange={handleChange}
+                                className="w-full p-2 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded text-sm dark:text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block mb-1 text-xs font-medium dark:text-gray-400">
+                                Length (cm)
+                            </label>
+                            <input
+                                type="number"
+                                name="length"
+                                value={data.length}
+                                onChange={handleChange}
+                                className="w-full p-2 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded text-sm dark:text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block mb-1 text-xs font-medium dark:text-gray-400">
+                                Width (cm)
+                            </label>
+                            <input
+                                type="number"
+                                name="width"
+                                value={data.width}
+                                onChange={handleChange}
+                                className="w-full p-2 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded text-sm dark:text-white"
+                            />
+                        </div>
                     </div>
-                </form>
-            </div>
+
+                    <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                        Full Product Details
+                    </label>
+                    <textarea
+                        name="productDetails"
+                        rows="6"
+                        value={data.productDetails}
+                        onChange={handleChange}
+                        className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white"
+                        placeholder="Detailed specifications, warranty information, etc."
+                    ></textarea>
+                </div>
+
+                {/* Form Actions */}
+                <div className="flex items-center justify-end gap-4 bg-gray-50 dark:bg-slate-900 p-4 rounded-lg border border-gray-200 dark:border-gray-800">
+                    <Link
+                        href="/admin/products"
+                        className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                        Cancel
+                    </Link>
+                    <button
+                        type="submit"
+                        disabled={processing}
+                        className="px-8 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                        {processing ? "Saving Product..." : "Publish Product"}
+                    </button>
+                </div>
+            </form>
         </div>
     );
 }

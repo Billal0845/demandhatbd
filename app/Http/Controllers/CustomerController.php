@@ -22,10 +22,12 @@ class CustomerController extends Controller
 {
     public function index()
     {
-        $products = Product::all();
+        // Important: Use with('category') so we can access category.name in React
+        $products = Product::with('category')->get();
         $categories = Category::all();
         $heroes = HeroImage::all();
         $sections = LandingSection::all();
+
         return inertia('Customer/LandingPage', [
             'products' => $products,
             'categories' => $categories,
@@ -212,6 +214,7 @@ class CustomerController extends Controller
             Mail::to($user->email)->send(new OtpMail($otp, $user->name));
         } catch (\Exception $e) {
             // Log error: \Log::error($e->getMessage());
+            dd($e->getMessage());
         }
 
         // 5. Redirect to OTP page with email in session
@@ -287,19 +290,30 @@ class CustomerController extends Controller
 
         // Check 1: OTP Logic
         if (!$user || $user->otp != $request->otp) {
-            return Inertia::render('Customer/VerifyOtp', [
-                'email' => $request->email,
-                'errors' => ['otp' => 'Invalid OTP | Email is not genuine.']
-            ]);
+            return back()->withErrors(['otp' => 'Invalid OTP provided.']);
         }
 
+
+        // if (!$user || $user->otp != $request->otp) {
+        //     return Inertia::render('Customer/VerifyOtp', [
+        //         'email' => $request->email,
+        //         'errors' => ['otp' => 'Invalid OTP | Email is not genuine.']
+        //     ]);
+        // }
+
         // Check 2: Expiration
+
         if (!$user->otp_expires_at || Carbon::now()->greaterThan($user->otp_expires_at)) {
-            return Inertia::render('Customer/VerifyOtp', [
-                'email' => $request->email,
-                'errors' => ['otp' => 'OTP has expired. Please login to request a new one.']
-            ]);
+            return back()->withErrors(['otp' => 'OTP has expired.']);
         }
+
+
+        // if (!$user->otp_expires_at || Carbon::now()->greaterThan($user->otp_expires_at)) {
+        //     return Inertia::render('Customer/VerifyOtp', [
+        //         'email' => $request->email,
+        //         'errors' => ['otp' => 'OTP has expired. Please login to request a new one.']
+        //     ]);
+        // }
 
         // Success logic...
         $user->update([
@@ -312,7 +326,7 @@ class CustomerController extends Controller
         $this->moveCartToDatabase($user->id);
         $request->session()->regenerate();
 
-        return redirect()->intended('/dashboard');
+        return redirect()->intended('/');
     }
 
     public function login(Request $request)
@@ -322,45 +336,169 @@ class CustomerController extends Controller
             'password' => ['required'],
         ]);
 
-        // Check "remember me" checkbox
         $remember = $request->boolean('remember');
 
+        // ১. ক্রেডেনশিয়াল চেক করা
         if (Auth::attempt($credentials, $remember)) {
-            $request->session()->regenerate();
-
             $user = Auth::user();
 
-            // Check if Verified
-            if ($user->email_verified_at === null) {
-                // User is not verified: Logout, Generate NEW OTP, Redirect
-                Auth::logout();
-
-                $otp = rand(100000, 999999);
-
-                $user->update([
-                    'otp' => $otp,
-                    'otp_expires_at' => Carbon::now()->addMinutes(5)
-                ]);
-
-                try {
-                    Mail::to($user->email)->send(new OtpMail($otp, $user->name));
-                } catch (\Exception $e) {
-                }
-
-                return redirect()->route('verification.notice')
-                    ->with('email', $user->email)
-                    ->withErrors(['email' => 'Your email is not verified. A new OTP has been sent.']);
+            // ============================================================
+            // নতুন লজিক: অ্যাডমিন সরাসরি ড্যাশবোর্ডে যাবে (No 2FA)
+            // ============================================================
+            if ($user->role === 'admin') {
+                $request->session()->regenerate();
+                $this->moveCartToDatabase($user->id);
+                return redirect()->route('admin.orders');
             }
 
-            $this->moveCartToDatabase($user->id); //added while doing cart functionality
+            // ============================================================
+            // ২. ম্যানেজার এবং এমপ্লয়ীদের জন্য ২এফএ (2FA Required)
+            // ============================================================
+            if (in_array($user->role, ['manager', 'employee'])) {
 
-            return redirect()->intended('/dashboard');
+                // যদি ২এফএ সেটআপ না করা থাকে
+                if (!$user->google2fa_secret) {
+                    Auth::logout();
+                    return back()->withErrors([
+                        'email' => '2FA is not set up for your account. Please contact your administrator.'
+                    ]);
+                }
+
+                // আইডি সেশনে রেখে লগআউট করে দিচ্ছি ২এফএ পেজে পাঠানোর জন্য
+                $userId = $user->id;
+                Auth::logout();
+                $request->session()->put('2fa_user_id', $userId);
+
+                return redirect()->route('staff.2fa.index');
+            }
+
+            // ============================================================
+            // ৩. কাস্টমার হলে আগের লজিক (Email Verification Check)
+            // ============================================================
+            if ($user->role === 'customer') {
+                if ($user->email_verified_at === null) {
+                    Auth::logout();
+                    $otp = rand(100000, 999999);
+                    $user->update(['otp' => $otp, 'otp_expires_at' => Carbon::now()->addMinutes(5)]);
+
+                    try {
+                        Mail::to($user->email)->send(new OtpMail($otp, $user->name));
+                    } catch (\Exception $e) {
+                        // Log error
+                    }
+
+                    return redirect()->route('verification.notice')->with('email', $user->email);
+                }
+
+                $request->session()->regenerate();
+                $this->moveCartToDatabase($user->id);
+                return redirect()->intended('/');
+            }
+
+            // অন্য কোনো রোল থাকলে ডিফল্ট রিডাইরেক্ট
+            return redirect()->intended('/');
         }
 
-        return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ]);
+        return back()->withErrors(['email' => 'The provided credentials do not match our records.']);
     }
+
+
+    public function showStaff2FaForm()
+    {
+
+        if (!session()->has('2fa_user_id')) {
+            return redirect()->route('login');
+        }
+
+        return inertia('AuthPages/StaffTwoFactor');
+    }
+
+    public function verifyStaff2Fa(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|numeric|digits:6',
+        ]);
+
+        if (!session()->has('2fa_user_id')) {
+            return redirect()->route('login');
+        }
+
+        $userId = session()->get('2fa_user_id');
+        $user = User::findOrFail($userId);
+
+        // Google 2FA ভেরিফিকেশন শুরু
+        $google2fa = app('pragmarx.google2fa');
+        $valid = $google2fa->verifyKey($user->google2fa_secret, $request->code);
+
+        if ($valid) {
+            // কোড সঠিক হলে সফলভাবে লগইন
+            Auth::login($user);
+            session()->forget('2fa_user_id');
+            $request->session()->regenerate();
+
+            return redirect()->route('admin.orders');
+        }
+
+        return back()->withErrors(['code' => 'Invalid security code. Please ask your manager for the correct code.']);
+    }
+
+
+    // public function login(Request $request)
+    // {
+    //     $credentials = $request->validate([
+    //         'email' => ['required', 'email'],
+    //         'password' => ['required'],
+    //     ]);
+
+
+
+    //     if (Auth::attempt($credentials, $request->boolean('remember'))) {
+
+    //         $user = Auth::user();
+
+    //         // 1. Verify OTP Status
+    //         if ($user->email_verified_at === null) {
+    //             Auth::logout();
+    //             $otp = rand(100000, 999999);
+    //             $user->update([
+    //                 'otp' => $otp,
+    //                 'otp_expires_at' => Carbon::now()->addMinutes(5)
+    //             ]);
+
+    //             try {
+    //                 Mail::to($user->email)->send(new OtpMail($otp, $user->name));
+    //             } catch (\Exception $e) {
+    //                 // Log error if mail fails
+    //             }
+
+    //             return redirect()->route('verification.notice')
+    //                 ->with('email', $user->email)
+    //                 ->withErrors(['email' => 'Your email is not verified. A new OTP has been sent.']);
+    //         }
+
+    //         // 2. Handle Cart Migration
+    //         $this->moveCartToDatabase($user->id);
+
+    //         // 3. REDIRECT BASED ON ROLE
+    //         // If Customer -> Home Page
+    //         if ($user->role === 'customer') {
+    //             return redirect()->intended('/');
+    //         }
+
+    //         // If Admin, Manager, or Employee -> Orders Page (as per your request)
+    //         if (in_array($user->role, ['admin', 'manager', 'employee'])) {
+    //             return redirect()->route('admin.orders');
+    //         }
+
+    //         // Fallback
+    //         return redirect()->intended('/');
+    //     }
+
+    //     return back()->withErrors([
+    //         'email' => 'The provided credentials do not match our records.',
+    //     ]);
+    // }
+
 
     public function logout(Request $request)
     {
@@ -418,19 +556,51 @@ class CustomerController extends Controller
 
     public function showOrderedItem($id)
     {
+        // 1. Ensure the user is logged in
         if (!Auth::check()) {
-            return redirect('/login'); // or handle guest user
+            return redirect('/login');
         }
 
+        $user = Auth::user();
+        $userPhone = $user->phone;
+
+        // 2. Fetch the order with items and product details
         $order = Order::with('items.product')
             ->where('id', $id)
-            ->where('user_id', Auth::id())
-            ->firstOrFail();
+            ->where(function ($query) use ($user, $userPhone) {
+                // Secure Logic: 
+                // The order belongs to the user if the phone numbers match
+                // OR if the order was explicitly assigned to their user_id.
+                if ($userPhone) {
+                    $query->where('phone', $userPhone)
+                        ->orWhere('user_id', $user->id);
+                } else {
+                    // Fallback: if user has no phone in profile, search only by ID
+                    $query->where('user_id', $user->id);
+                }
+            })
+            ->firstOrFail(); // Throws 404 if not found or not owned by user
 
         return Inertia::render('Customer/OrderDetails', [
             'order' => $order
         ]);
+    }
 
+
+    public function viewDeashboard()
+    {
+        $user = Auth::user();
+
+        // 1. Get the phone number from the logged-in user's profile
+        $userPhone = $user->phone;
+
+        // 2. Fetch orders where the phone number matches
+        // We also include user_id as a fallback in case the phone was entered differently
+        $orders = Order::where('phone', $userPhone)->latest()->get();
+
+        return Inertia::render('Customer/CustomerDashboard', [
+            'orders' => $orders
+        ]);
 
     }
 

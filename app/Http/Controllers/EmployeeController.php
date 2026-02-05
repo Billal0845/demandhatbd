@@ -3,11 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Order; // <--- IMPORTANT: Added this import
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use PragmaRX\Google2FALaravel\Support\Authenticator;
+use SimpleSoftwareIO\QrCode\Facades\QrCode; // অথবা BaconQrCode
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 
 
 
@@ -16,7 +23,6 @@ class EmployeeController extends Controller
     public function showEmployees()
     {
         $employees = User::whereIn('role', ['manager', 'employee'])
-            // This adds a 'assigned_orders_count' attribute to each user
             ->withCount([
                 'assignedOrders' => function ($query) {
                     $query->where('order_status', 'pending');
@@ -42,11 +48,18 @@ class EmployeeController extends Controller
             'phone' => ['required', 'string', 'regex:/^(013|014|015|016|017|018|019)[0-9]{8}$/', 'unique:users'],
             'password' => 'required|string|min:8',
             'address' => 'required|string|max:500',
-            // Ensure only these two roles can be created here
             'role' => 'required|in:manager,employee',
         ]);
 
-        // 2. Create User (Auto Verified)
+        // 2. Security Check: Prevent managers from creating other managers
+        // If a manager bypasses the UI and tries to send 'role' => 'manager'
+        if (Auth::user()->role === 'manager' && $validated['role'] === 'manager') {
+            return back()->withErrors([
+                'role' => 'Unauthorized: Managers are only allowed to create staff accounts.'
+            ])->withInput();
+        }
+
+        // 3. Create User (Auto Verified)
         User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -54,10 +67,8 @@ class EmployeeController extends Controller
             'address' => $validated['address'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
-
-            // AUTOMATICALLY VERIFY THEM so they don't need OTP
             'email_verified_at' => Carbon::now(),
-            'phone_verified_at' => Carbon::now(), // Optional if you track this
+            'phone_verified_at' => Carbon::now(),
         ]);
 
         return redirect()->to('/admin/employees')
@@ -73,7 +84,59 @@ class EmployeeController extends Controller
             return back()->with('error', 'You cannot delete yourself.');
         }
 
+        // =========================================================
+        // PERMANENT FIX: Release Pending Orders
+        // =========================================================
+        // Before deleting the user, find 'pending' orders assigned to them
+        // and set 'assigned_to' to NULL.
+        Order::where('assigned_to', $user->id)
+            ->where('order_status', 'pending')
+            ->update(['assigned_to' => null]);
+        // =========================================================
+
         $user->delete();
-        return back()->with('success', 'Employee removed.');
+
+        return back()->with('success', 'Employee removed and pending orders released.');
     }
+
+    public function getTwoFactorQrCode($id)
+    {
+        $user = User::findOrFail($id);
+        $google2fa = app('pragmarx.google2fa');
+
+        // সিক্রেট কি না থাকলে তৈরি করবে
+        if (!$user->google2fa_secret) {
+            $user->google2fa_secret = $google2fa->generateSecretKey();
+            $user->save();
+        }
+
+        // QR Code এর ডাটা URL তৈরি
+        $qrCodeUrl = $google2fa->getQRCodeUrl(
+            'SURABIL', // আপনার ব্যবসার নাম
+            $user->name,
+            $user->google2fa_secret
+        );
+
+        // BaconQrCode ব্যবহার করে SVG ইমেজ তৈরি করা (সবচেয়ে সেফ এবং ফাস্ট)
+        $renderer = new ImageRenderer(
+            new RendererStyle(300),
+            new SvgImageBackEnd()
+        );
+        $writer = new Writer($renderer);
+
+        // ইমেজটিকে Base64 ফরম্যাটে কনভার্ট করা যাতে সরাসরি <img> ট্যাগে শো করে
+        $qrcode_svg = $writer->writeString($qrCodeUrl);
+        $base64_qrcode = 'data:image/svg+xml;base64,' . base64_encode($qrcode_svg);
+
+        return response()->json([
+            'qr_code_url' => $base64_qrcode, // এখন এটি একটি সরাসরি ইমেজ ডাটা
+            'secret' => $user->google2fa_secret,
+            'name' => $user->name
+        ]);
+    }
+
+
+
+
+
 }

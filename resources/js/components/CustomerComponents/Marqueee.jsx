@@ -18,7 +18,7 @@ function Marqueee() {
             <div
                 className="
                 marquee-wrapper 
-                bg-[#E8F5E3] text-[#1F2937]
+                bg-[#658C58] text-[#f9fafa]
                 dark:bg-[#1F2A1C] dark:text-[#E5F7DF]
                 border-b border-[#658C58]/20 dark:border-[#527043]/40
                 py-2 text-sm

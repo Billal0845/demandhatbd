@@ -1,129 +1,132 @@
-import React from "react";
-import { CreditCard, Smartphone, CheckCircle } from "lucide-react";
+import { FiPlus, FiMinus, FiTrash2 } from "react-icons/fi";
 
 export default function OrderSummary({
     cartItems,
     totals,
     summary,
     data,
-    processing,
+    updateQuantity,
+    removeItem,
+    processingId,
 }) {
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sticky top-8">
-            <h3 className="font-bold font-poppins text-lg text-gray-900 dark:text-white mb-4">
-                Order Summary
-            </h3>
+        <div className="bg-white font-hindSiliguri dark:bg-gray-800 rounded-xl shadow-sm border p-3 sm:p-6 sticky top-8">
+            <h3 className="font-bold text-lg mb-4">অর্ডার লিস্ট</h3>
 
-            {/* Cart Items List */}
-            <div className="max-h-60 overflow-y-auto mb-4 pr-1 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600">
-                {cartItems.map((item) => (
-                    <div key={item.id} className="flex font-work gap-3 mb-4">
-                        <div className="w-12 h-12 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
+            <div className="space-y-4 mb-6">
+                {cartItems.map((item) => {
+                    // Logic to check if we hit the stock limit
+                    const isLimitReached = item.quantity >= item.stock;
+
+                    return (
+                        <div
+                            key={item.id}
+                            className={`flex gap-3 border-b pb-4 ${processingId === item.id ? "opacity-50" : ""}`}
+                        >
                             <img
                                 src={item.image}
-                                alt={item.name}
-                                className="w-full h-full object-cover"
+                                className="w-16 h-16 object-contain bg-gray-50 rounded"
                             />
-                        </div>
-                        <div className="flex-1">
-                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">
-                                {item.name}
-                            </h4>
-                            <div className="flex justify-between items-start">
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Qty: {item.quantity} × {item.price}
-                                </p>
-                                <span
-                                    className={`text-[10px] px-1.5 py-0.5 rounded uppercase ${
-                                        item.bussiness_class === "high"
-                                            ? "bg-red-100 text-red-600"
-                                            : item.bussiness_class === "medium"
-                                              ? "bg-orange-100 text-orange-600"
-                                              : "bg-gray-100 text-gray-600"
-                                    }`}
-                                >
-                                    {item.bussiness_class || "normal"}
-                                </span>
+
+                            <div className="flex-1">
+                                <h4 className="text-sm font-bold line-clamp-1">
+                                    {item.name}
+                                </h4>
+
+                                {/* Quantity Controls */}
+                                <div className="flex flex-col gap-1 mt-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center border rounded bg-gray-50 dark:bg-gray-700">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    updateQuantity(
+                                                        item.id,
+                                                        item.quantity - 1,
+                                                    )
+                                                }
+                                                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600"
+                                            >
+                                                <FiMinus size={12} />
+                                            </button>
+                                            <span className="px-2 text-xs font-bold">
+                                                {item.quantity}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                disabled={isLimitReached} // Disable when stock is full
+                                                onClick={() =>
+                                                    updateQuantity(
+                                                        item.id,
+                                                        item.quantity + 1,
+                                                    )
+                                                }
+                                                className={`p-1 transition-colors ${
+                                                    isLimitReached
+                                                        ? "text-gray-300 cursor-not-allowed"
+                                                        : "hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
+                                                }`}
+                                            >
+                                                <FiPlus size={12} />
+                                            </button>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => removeItem(item.id)}
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            <FiTrash2 size={14} />
+                                        </button>
+                                    </div>
+
+                                    {/* STOCK WARNING MESSAGE */}
+                                    {isLimitReached && (
+                                        <p className="text-[10px] text-orange-600 font-bold">
+                                            দুঃখিত, মাত্র {item.stock} পিস স্টকে
+                                            আছে
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="text-right">
+                                <div className="text-sm font-bold">
+                                    TK{" "}
+                                    {(
+                                        item.price * item.quantity
+                                    ).toLocaleString()}
+                                </div>
+                                <div className="text-[10px] text-gray-500">
+                                    TK {item.price} প্রতি পিস
+                                </div>
                             </div>
                         </div>
-                        <div className="text-sm font-bold text-gray-900 dark:text-white">
-                            TK {(item.price * item.quantity).toLocaleString()}
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
-            {/* Calculation Details */}
-            <div className="space-y-3 pb-4 border-t border-b border-gray-100 dark:border-gray-700 pt-4">
-                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+            {/* Totals Section */}
+            <div className="space-y-2 font-poppins text-sm border-t pt-4">
+                <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                        TK {totals.itemTotal?.toLocaleString()}
-                    </span>
+                    <span>TK {totals.itemTotal?.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                <div className="flex justify-between">
                     <span>Delivery Fee</span>
-                    <span
-                        className={`font-semibold ${
-                            summary.deliveryFee === 0
-                                ? "text-green-500"
-                                : "text-gray-900 dark:text-white"
-                        }`}
-                    >
-                        {summary.deliveryFee === 0 && data.delivery_area
-                            ? "Free"
-                            : `TK ${summary.deliveryFee.toLocaleString()}`}
-                        {!data.delivery_area && " (Select Area)"}
+                    <span className="text-green-600 font-hindSiliguri font-bold">
+                        {data.delivery_area
+                            ? `TK ${summary.deliveryFee}`
+                            : "Area সিলেক্ট করুন"}
+                    </span>
+                </div>
+                <div className="flex justify-between border-t pt-2 text-lg font-bold">
+                    <span>Total</span>
+                    <span className="text-blue-600">
+                        TK {summary.grandTotal.toLocaleString()}
                     </span>
                 </div>
             </div>
-
-            {/* Grand Total */}
-            <div className="flex justify-between items-center py-4">
-                <span className="font-bold text-lg text-gray-900 dark:text-white">
-                    Total Amount
-                </span>
-                <span className="font-bold text-xl text-blue-600">
-                    TK {summary.grandTotal.toLocaleString()}
-                </span>
-            </div>
-
-            {/* Submit Button */}
-            <button
-                type="submit"
-                form="checkout-form"
-                disabled={processing}
-                className={`w-full font-bold py-3.5 rounded-xl flex justify-center items-center gap-2 transition-all shadow-lg transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed ${
-                    data.payment_method === "bkash"
-                        ? "bg-pink-600 hover:bg-pink-700 text-white shadow-pink-600/30"
-                        : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30"
-                }`}
-            >
-                {processing ? (
-                    "Processing..."
-                ) : (
-                    <>
-                        {data.payment_method === "stripe" && "Pay with Stripe"}
-                        {data.payment_method === "bkash" && "Pay with bKash"}
-                        {data.payment_method === "cod" && "Place Order"}
-
-                        {data.payment_method === "stripe" && (
-                            <CreditCard size={18} />
-                        )}
-                        {data.payment_method === "bkash" && (
-                            <Smartphone size={18} />
-                        )}
-                        {data.payment_method === "cod" && (
-                            <CheckCircle size={18} />
-                        )}
-                    </>
-                )}
-            </button>
-
-            <p className="text-xs text-center text-gray-400 mt-4">
-                By placing this order, you agree to our Terms of Service and
-                Privacy Policy.
-            </p>
         </div>
     );
 }

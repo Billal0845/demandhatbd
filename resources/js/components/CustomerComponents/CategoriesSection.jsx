@@ -2,6 +2,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { Link } from "@inertiajs/react";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa6";
+import { IoIosArrowRoundBack } from "react-icons/io";
 
 function CategoriesSection({ categoriesComing, sectionName }) {
     const [categories, setCategories] = useState(categoriesComing || []);
@@ -19,7 +20,7 @@ function CategoriesSection({ categoriesComing, sectionName }) {
     };
 
     return (
-        <div className="bg-white mt-5 dark:bg-[#0F1A0D] py-10  px-4 ">
+        <div className="bg-white mt-1 dark:bg-[#0F1A0D] py-5  px-4 ">
             <div className="max-w-[1200px] mx-auto">
                 <div className="flex my-3 items-center mx-auto  justify-between">
                     <div className="font-bold font-poppins text-xl dark:text-gray-200 md:text-2xl text-gray-800">
@@ -125,6 +126,9 @@ function CategoriesSection({ categoriesComing, sectionName }) {
                         );
                     })}
                 </div>
+            </div>
+            <div className=" font-poppins font-medium p-1">
+                Swipe Horizontally...
             </div>
         </div>
     );

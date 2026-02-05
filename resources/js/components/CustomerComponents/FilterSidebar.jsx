@@ -61,12 +61,12 @@ function FilterSidebar({
                 )}
             </div>
             {/* Visual Only: Category Section (Collapsed) */}
-            <div className="border-b border-gray-200 dark:border-gray-700 py-4">
+            {/* <div className="border-b border-gray-200 dark:border-gray-700 py-4">
                 <button className="flex w-full font-inter justify-between items-center text-gray-700 dark:text-gray-300 text-sm font-medium">
                     <span>Category</span>
                     <FaChevronDown size={12} />
                 </button>
-            </div>
+            </div> */}
             {/* Visual Only: Other Filters */}
             {["Brand", "Color"].map((filter) => (
                 <div

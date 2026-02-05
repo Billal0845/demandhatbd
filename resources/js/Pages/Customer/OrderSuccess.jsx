@@ -1,82 +1,172 @@
-import React, { useEffect } from "react"; // <--- Don't forget to import useEffect!
+import React, { useEffect } from "react";
 import { Head, Link } from "@inertiajs/react";
 import CustomerLayout from "@/Layouts/CustomerLayouts/CustomerLayout";
-import { CheckCircle, Home, ShoppingBag } from "lucide-react";
+import {
+    CheckCircle2,
+    Home,
+    ShoppingBag,
+    Truck,
+    PhoneCall,
+} from "lucide-react";
 import ReactPixel from "react-facebook-pixel";
 
-// 1. Change prop from { order_id } to { order }
 const OrderSuccess = ({ order }) => {
     useEffect(() => {
-        // Safety check: Ensure order and items exist before tracking
         if (order && order.items) {
             ReactPixel.track("Purchase", {
                 content_name: "Order #" + order.id,
-                // 2. Now this works because we loaded 'items' in the controller
                 content_ids: order.items.map(
                     (item) => item.product_id || item.id,
                 ),
                 content_type: "product",
                 value: order.total_amount,
-                currency: "USD",
+                currency: "BDT", // Changed to BDT to match your store
             });
         }
-    }, [order]); // Dependency array ensures it runs when order data is ready
+    }, [order]);
 
     return (
-        <>
-            <Head title="Order Confirmed" />
+        <div className="bg-gray-50 min-h-screen font-hindSiliguri pb-20">
+            <Head title="অর্ডার সফল হয়েছে - SURABIL" />
 
-            <div className="min-h-[65vh] flex items-center justify-center px-4 py-10 bg-gradient-to-br from-green-50 via-white to-green-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
-                <div className="relative max-w-lg w-full text-center bg-white/90 dark:bg-gray-900/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 dark:border-gray-700">
-                    {/* Icon */}
-                    <div className="relative mx-auto mb-6">
-                        <div className="absolute inset-0 rounded-full bg-green-500/20 blur-xl"></div>
-                        <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
-                            <CheckCircle className="w-10 h-10 text-white" />
+            <div className="max-w-2xl mx-auto px-4 pt-10">
+                {/* 1. Success Header */}
+                <div className="text-center mb-10">
+                    <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
+                        <CheckCircle2 className="w-12 h-12 text-[#658C58]" />
+                    </div>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                        অর্ডার সফল হয়েছে! 🎉
+                    </h1>
+                    <p className="text-gray-600">
+                        আপনার অর্ডারটি আমরা সফলভাবে গ্রহণ করেছি। খুব শীঘ্রই
+                        আমাদের একজন প্রতিনিধি আপনাকে কল করবেন।
+                    </p>
+                </div>
+
+                {/* 2. Order Information Card */}
+                <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden mb-8">
+                    <div className="bg-[#658C58] px-6 py-4 flex justify-between items-center text-white">
+                        <span className="font-semibold">
+                            অর্ডার আইডি: #{order.id}
+                        </span>
+                        <span className="text-sm opacity-90">
+                            অর্ডার সময়: {new Date().toLocaleDateString("bn-BD")}
+                        </span>
+                    </div>
+
+                    <div className="p-6">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                                <span className="text-gray-500">
+                                    পেমেন্ট মেথড:
+                                </span>
+                                <span className="font-bold text-gray-800">
+                                    Cash on Delivery
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                                <span className="text-gray-500">
+                                    মোট মূল্য:
+                                </span>
+                                <span className="text-xl font-bold text-[#658C58]">
+                                    Tk {Math.round(order.grand_total)}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Delivery Notice */}
+                        <div className="mt-6 flex gap-4 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                            <Truck
+                                className="shrink-0 text-blue-600"
+                                size={24}
+                            />
+                            <div>
+                                <h4 className="font-bold text-blue-900 text-sm">
+                                    ডেলিভারি আপডেট
+                                </h4>
+                                <p className="text-xs text-blue-700 leading-relaxed">
+                                    আগামী ৭২ ঘণ্টার মধ্যে আপনার পণ্যটি ডেলিভারি
+                                    করা হবে। দয়া করে ফোন সচল রাখুন।
+                                </p>
+                            </div>
                         </div>
                     </div>
-
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-3">
-                        Order Confirmed 🎉
-                    </h1>
-
-                    <p className="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
-                        Thank you for shopping with us. Your order has been
-                        successfully placed and is now being processed.
-                    </p>
-
-                    {/* Order ID Display */}
-                    <div className="rounded-xl p-4 mb-10 bg-gray-50 dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-600">
-                        <span className="block text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
-                            Order ID
-                        </span>
-                        {/* 3. Access ID from the object */}
-                        <span className="text-2xl font-mono font-bold text-gray-900 dark:text-white">
-                            #{order.id}
+                </div>
+                <h3 className="text-green-700 p-2 font-medium my-2">
+                    অর্ডার ট্রাক করতে লগিন করুন
+                </h3>
+                {/* 3. Steps/Process Visualization */}
+                <div className="grid mx-auto grid-cols-4 gap-2 mb-10 text-center">
+                    <div className="flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold mb-2">
+                            1
+                        </div>
+                        <span className="text-[10px] sm:text-xs font-bold text-gray-800">
+                            অর্ডার সম্পন্ন
                         </span>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link
-                            href="/"
-                            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white transition-all duration-200"
-                        >
-                            <Home size={18} />
-                            Go Home
-                        </Link>
+                    <div className="flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold mb-2">
+                            2
+                        </div>
+                        <span className="text-[10px] sm:text-xs font-bold text-gray-500">
+                            অর্ডার ভেরিফাইড
+                        </span>
+                    </div>
 
-                        <Link
-                            href="/myOrders"
-                            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200"
-                        >
-                            <ShoppingBag size={18} />
-                            View Orders
-                        </Link>
+                    <div className="flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold mb-2">
+                            4
+                        </div>
+                        <span className="text-[10px] sm:text-xs font-medium text-gray-500">
+                            কুরিয়ারের কাছে
+                        </span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold mb-2">
+                            5
+                        </div>
+                        <span className="text-[10px] sm:text-xs font-medium text-gray-500">
+                            ডেলিভারি
+                        </span>
                     </div>
                 </div>
+
+                {/* 4. Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <Link
+                        href="/productspage"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold bg-[#658C58] hover:bg-[#527043] text-white transition-all shadow-lg active:scale-95"
+                    >
+                        <ShoppingBag size={20} />
+                        আরও কেনাকাটা করুন
+                    </Link>
+                    <Link
+                        href="/"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold bg-white border-2 border-gray-200 hover:border-[#658C58] hover:text-[#658C58] text-gray-700 transition-all active:scale-95"
+                    >
+                        <Home size={20} />
+                        হোম পেজে যান
+                    </Link>
+                </div>
+
+                {/* Support Contact */}
+                <div className="mt-10 text-center">
+                    <p className="text-gray-500 text-sm mb-2">
+                        কোনো সমস্যা হলে কল করুন
+                    </p>
+                    <a
+                        href="tel:01867510845"
+                        className="inline-flex items-center gap-2 text-lg font-bold text-[#658C58] hover:underline"
+                    >
+                        <PhoneCall size={18} />
+                        01898385395
+                    </a>
+                </div>
             </div>
-        </>
+        </div>
     );
 };
 

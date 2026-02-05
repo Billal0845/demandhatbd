@@ -1,17 +1,21 @@
 import React from "react";
-import { useForm, Link } from "@inertiajs/react";
+import { useForm, Link, usePage } from "@inertiajs/react"; // 1. Added usePage
 import AdminLayout from "../../../Layouts/AdminLayouts/AdminLayout";
 import { FiArrowLeft, FiSave } from "react-icons/fi";
 import toast from "react-hot-toast";
 
 function AddEmployeeForm() {
+    // 2. Get the current user's role from the auth props
+    const { auth } = usePage().props;
+    const currentUserRole = auth.user.role;
+
     const { data, setData, post, processing, errors } = useForm({
         name: "",
         email: "",
         phone: "",
         password: "",
         address: "",
-        role: "employee", // Default selection
+        role: "employee",
     });
 
     const handleSubmit = (e) => {
@@ -25,6 +29,7 @@ function AddEmployeeForm() {
                     phone: "",
                     email: "",
                     password: "",
+                    role: "employee",
                 });
                 toast.success("Employee created successfully!");
             },
@@ -33,20 +38,18 @@ function AddEmployeeForm() {
 
     return (
         <div className="max-w-4xl mx-auto font-poppins">
-            {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
                     Add New Staff
                 </h2>
                 <Link
-                    href={"admin.employees.index"}
+                    href={"/admin/employees"} // Recommended: use route() helper if available
                     className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 transition-colors"
                 >
                     <FiArrowLeft /> Back to List
                 </Link>
             </div>
 
-            {/* Form Card */}
             <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -71,7 +74,7 @@ function AddEmployeeForm() {
                             )}
                         </div>
 
-                        {/* Role Selection */}
+                        {/* Role Selection - CONDITIONALLY FILTERED */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Role
@@ -86,7 +89,11 @@ function AddEmployeeForm() {
                                 <option value="employee">
                                     Employee (Staff)
                                 </option>
-                                <option value="manager">Manager</option>
+
+                                {/* 3. Only show Manager option if current user is Admin */}
+                                {currentUserRole === "admin" && (
+                                    <option value="manager">Manager</option>
+                                )}
                             </select>
                             {errors.role && (
                                 <div className="text-red-500 text-sm mt-1">
@@ -95,7 +102,7 @@ function AddEmployeeForm() {
                             )}
                         </div>
 
-                        {/* Email */}
+                        {/* ... Email, Phone, Password, and Address fields remain the same ... */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Email Address
@@ -116,7 +123,6 @@ function AddEmployeeForm() {
                             )}
                         </div>
 
-                        {/* Phone */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Phone Number
@@ -137,7 +143,6 @@ function AddEmployeeForm() {
                             )}
                         </div>
 
-                        {/* Password */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Password
@@ -158,7 +163,6 @@ function AddEmployeeForm() {
                             )}
                         </div>
 
-                        {/* Address */}
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Address
@@ -180,7 +184,6 @@ function AddEmployeeForm() {
                         </div>
                     </div>
 
-                    {/* Submit Button */}
                     <div className="flex justify-end pt-2">
                         <button
                             type="submit"

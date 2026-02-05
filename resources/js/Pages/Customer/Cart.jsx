@@ -173,7 +173,7 @@ const Cart = ({ cartItems = [], totals = {} }) => {
                             <div className="bg-white dark:bg-[#1F2937] rounded-xl shadow-sm border border-green-600/50 dark:border-[#374151] p-6 sticky top-4">
                                 {/* Red Notice as per screenshot */}
                                 <h3 className="font-medium text-lg text-red-500 mb-6 text-center">
-                                    (Without Delivery Fee)
+                                    (ডেলিভারি ফি বাদে )
                                 </h3>
 
                                 <div className="space-y-4 pb-6 border-b border-gray-100 dark:border-[#374151]">
@@ -189,8 +189,7 @@ const Cart = ({ cartItems = [], totals = {} }) => {
 
                                     {/* Optional: Show delivery info text if needed */}
                                     <p className="text-xs text-gray-400 text-right italic">
-                                        * Delivery charges calculated at
-                                        checkout
+                                        *পরের পেজে ডেলিভারি ফি হিসেব করা হবে
                                     </p>
                                 </div>
 

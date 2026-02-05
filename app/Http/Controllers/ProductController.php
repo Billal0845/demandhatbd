@@ -14,11 +14,20 @@ class ProductController extends Controller
 
     public function showDetails($id)
     {
+        // 1. Fetch current product with images
+        $product = Product::with('images')->findOrFail($id);
 
-        $product = Product::findOrFail($id);
+        // 2. Fetch related products (same category, excluding current product)
+        $relatedProducts = Product::where('category_id', $product->category_id)
+            ->where('id', '!=', $id)
+            ->where('stock', '>', 0) // Optional: only show in-stock related items
+            ->latest()
+            ->take(7) // Show 4 products
+            ->get();
 
         return inertia('Customer/ProductDetailsPage', [
             'product' => $product,
+            'relatedProducts' => $relatedProducts,
         ]);
     }
 
