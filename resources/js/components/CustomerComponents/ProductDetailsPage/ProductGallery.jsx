@@ -6,6 +6,13 @@ const ProductGallery = ({
     setSelectedImage,
     discountPercentage,
 }) => {
+    // Helper to extract path regardless of data format
+    const getImagePath = (img) => {
+        if (!img) return "";
+        // If img is an object {image_path: '...'}, return that. If it's just a string, return the string.
+        return typeof img === "object" ? img.image_path : img;
+    };
+
     return (
         <div className="flex flex-col gap-4">
             <div className="relative group">
@@ -32,8 +39,10 @@ const ProductGallery = ({
                 </div>
             </div>
 
+            {/* Gallery Thumbnails */}
             {product.images && product.images.length > 0 && (
                 <div className="flex flex-wrap gap-2 sm:gap-3">
+                    {/* Main Image Thumbnail */}
                     <button
                         onClick={() => setSelectedImage(product.image)}
                         className={`w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all ${
@@ -49,23 +58,33 @@ const ProductGallery = ({
                         />
                     </button>
 
-                    {product.images.map((img, index) => (
-                        <button
-                            key={index}
-                            onClick={() => setSelectedImage(img.image_path)}
-                            className={`w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                                selectedImage === img.image_path
-                                    ? "border-green-600 scale-105 shadow-md"
-                                    : "border-gray-200 dark:border-gray-700 opacity-70 hover:opacity-100"
-                            }`}
-                        >
-                            <img
-                                src={`/storage/${img.image_path}`}
-                                className="w-full h-full object-cover"
-                                alt={`gallery-${index}`}
-                            />
-                        </button>
-                    ))}
+                    {/* Additional Images Loop */}
+                    {product.images.map((img, index) => {
+                        const path = getImagePath(img);
+                        return (
+                            <button
+                                key={index}
+                                onClick={() => setSelectedImage(path)}
+                                className={`w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                                    selectedImage === path
+                                        ? "border-green-600 scale-105 shadow-md"
+                                        : "border-gray-200 dark:border-gray-700 opacity-70 hover:opacity-100"
+                                }`}
+                            >
+                                <img
+                                    src={`/storage/${path}`}
+                                    className="w-full h-full object-cover"
+                                    alt={`gallery-${index}`}
+                                    onError={(e) => {
+                                        console.log(
+                                            "Failed to load image at:",
+                                            path,
+                                        );
+                                    }}
+                                />
+                            </button>
+                        );
+                    })}
                 </div>
             )}
         </div>
