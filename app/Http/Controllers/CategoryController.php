@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Category;
+use Illuminate\Support\Facades\Storage;
+
+
 
 class CategoryController extends Controller
 {
@@ -15,12 +18,20 @@ class CategoryController extends Controller
 
     public function storeCategory(Request $request)
     {
-        $data = $request->validate([
-            'name' => 'string|max:255|unique:categories,name',
+        $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name',
+            'photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048', // 2MB Max
         ]);
+
+        $path = null;
+        if ($request->hasFile('photo')) {
+            // Stores in storage/app/public/categories
+            $path = $request->file('photo')->store('categories', 'public');
+        }
 
         Category::create([
             'name' => $request->name,
+            'photo' => $path,
         ]);
 
         return redirect()->back()->with('success', 'Category created successfully!');
@@ -50,21 +61,27 @@ class CategoryController extends Controller
 
     public function updateCategory(Request $request, $id)
     {
+        $category = Category::findOrFail($id);
 
         $request->validate([
-            'name' => 'required|string|max:255|unique:categories',
+            'name' => 'required|string|max:255|unique:categories,name,' . $id,
+            'photo' => 'nullable|image|max:2048',
         ]);
 
-        $category = Category::findOrFail($id);
-        $category->update(['name' => $request->name]);
+        $category->name = $request->name;
 
+        if ($request->hasFile('photo')) {
+            // Delete old photo if it exists
+            if ($category->photo) {
+                Storage::disk('public')->delete($category->photo);
+            }
+            // Store new photo
+            $category->photo = $request->file('photo')->store('categories', 'public');
+        }
 
-        return redirect('/admin/categories')->with('success', 'Category updated successfully');
+        $category->save();
+
+        return redirect('/admin/categories')->with('success', 'Updated successfully');
     }
-
-
-
-
-
 
 }

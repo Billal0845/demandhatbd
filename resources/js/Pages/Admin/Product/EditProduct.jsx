@@ -1,36 +1,42 @@
 import AdminLayout from "@/Layouts/AdminLayouts/AdminLayout";
 import React, { useState } from "react";
-import { Link, useForm } from "@inertiajs/react";
-import { FiArrowLeft, FiUploadCloud } from "react-icons/fi";
+import { Link, useForm, router } from "@inertiajs/react";
+import { FiArrowLeft, FiUploadCloud, FiX, FiPlus } from "react-icons/fi";
 import toast from "react-hot-toast";
+import TiptapEditor from "../../../components/AdminComponents/TiptapEditor";
 
-function EditProduct({ categories = [], product = [] }) {
+function EditProduct({ categories = [], product = {} }) {
+    // 1. Initialize useForm with existing product data
     const { data, setData, post, processing, errors } = useForm({
-        productName: product.name,
-        short_description: product.short_description ?? "",
-        category: product.category?.id ?? "",
-        brand: product.brand ?? "",
-        quick_view: product.quick_view ?? "",
-        price: product.price ?? "",
-        discount: product.discount ?? "",
-        stock: product.stock ?? "",
-        color: product.color ?? "",
-        weight: product.weight ?? "",
-        length: product.length ?? "",
-        width: product.width ?? "",
-        productDetails: product.description ?? "",
-        bussiness_class: product.bussiness_class ?? "normal",
-        image: null,
-        _method: "PATCH",
+        productName: product.name || "",
+        short_description: product.short_description || "",
+        category: product.category_id || "",
+        brand: product.brand || "",
+        quick_view: product.quick_view || "",
+        price: product.price || "",
+        stock: product.stock || "",
+        color: product.color || "",
+        weight: product.weight || "",
+        length: product.length || "",
+        width: product.width || "",
+        bussiness_class: product.bussiness_class || "",
+        productDetails: product.description || "",
+        specification: product.specification || "",
+        discount: product.discount || "",
+        image: null, // New primary image if selected
+        gallery: [], // New gallery images to be added
+        _method: "PATCH", // Required for Laravel multipart/form-data updates
     });
 
     const [previewImage, setPreviewImage] = useState(null);
+    const [galleryPreviews, setGalleryPreviews] = useState([]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setData(name, value);
     };
 
+    // 2. Handle Primary Image Change
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -39,44 +45,69 @@ function EditProduct({ categories = [], product = [] }) {
         }
     };
 
+    // 3. Handle New Gallery Uploads
+    const handleGalleryChange = (e) => {
+        const files = Array.from(e.target.files);
+        setData("gallery", [...data.gallery, ...files]);
+        const newPreviews = files.map((file) => URL.createObjectURL(file));
+        setGalleryPreviews([...galleryPreviews, ...newPreviews]);
+    };
+
+    const removeNewGalleryImage = (index) => {
+        const updatedGallery = data.gallery.filter((_, i) => i !== index);
+        const updatedPreviews = galleryPreviews.filter((_, i) => i !== index);
+        setData("gallery", updatedGallery);
+        setGalleryPreviews(updatedPreviews);
+    };
+
+    // 4. Delete EXISTING gallery images from Server
+    const deleteExistingImage = (imageId) => {
+        if (
+            confirm(
+                "Are you sure you want to remove this gallery image permanently?",
+            )
+        ) {
+            router.delete(`/admin/products/gallery/${imageId}`, {
+                preserveScroll: true,
+                onSuccess: () => toast.success("Image removed"),
+            });
+        }
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-
+        // We use POST with _method: PATCH because browsers/PHP struggle with
+        // native PATCH requests containing files (multipart/form-data)
         post(`/admin/products/${product.id}`, {
             forceFormData: true,
-            onSuccess: () => {
-                toast.success("Product Updated successfully");
-            },
+            onSuccess: () => toast.success("Product updated successfully!"),
+            onError: () => toast.error("Check form for errors"),
         });
     };
 
     return (
-        <div className="max-w-5xl mx-auto">
-            {/* Header */}
+        <div className="max-w-5xl mx-auto pb-12">
             <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
                     Edit Product
                 </h2>
                 <Link
                     href="/admin/products"
-                    className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 transition-colors"
                 >
                     <FiArrowLeft /> Back to Products
                 </Link>
             </div>
 
-            <div className="bg-white dark:bg-slate-950 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
-                <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Basic Info */}
+                <div className="bg-white dark:bg-slate-950 border border-gray-200 dark:border-gray-800 rounded-lg p-6 shadow-sm">
+                    <h3 className="text-lg font-semibold mb-6 text-gray-800 dark:text-gray-200 border-b pb-2">
                         Basic Information
                     </h3>
-                </div>
-
-                <form onSubmit={handleSubmit} className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Product Name */}
-                        <div className="col-span-1 md:col-span-2">
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                        <div className="col-span-2">
+                            <label className="block mb-2 text-sm font-medium dark:text-gray-300">
                                 Product Name
                             </label>
                             <input
@@ -84,79 +115,43 @@ function EditProduct({ categories = [], product = [] }) {
                                 name="productName"
                                 value={data.productName}
                                 onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.productName
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
-                                placeholder="e.g. HP 15-fd0812TU Series 1 Intel Core 5"
+                                className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg dark:text-white"
                             />
-                            {errors.productName && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.productName}
-                                </p>
-                            )}
                         </div>
 
-                        {/* Short Description */}
-                        <div className="col-span-1 md:col-span-2">
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Short Description{" "}
-                                <span className="text-gray-600">
-                                    (shows on landing page below name)
-                                </span>
+                        <div className="col-span-2">
+                            <label className="block mb-2 text-sm font-medium dark:text-gray-300">
+                                Short Description
                             </label>
                             <input
                                 type="text"
                                 name="short_description"
                                 value={data.short_description}
                                 onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.short_description
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
-                                placeholder="HP 15-fd0812TU Series 1 Intel Core 5 120U 8GB RAM, 512GB SSD 15.6 Inch FHD Display Silver Laptop"
+                                className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg dark:text-white"
                             />
-                            {errors.short_description && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.short_description}
-                                </p>
-                            )}
                         </div>
 
-                        {/* Category */}
                         <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                            <label className="block mb-2 text-sm font-medium dark:text-gray-300">
                                 Category
                             </label>
                             <select
                                 name="category"
                                 value={data.category}
                                 onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.category
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
+                                className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg dark:text-white"
                             >
-                                <option value="">Select Category</option>
                                 {categories.map((cat) => (
                                     <option key={cat.id} value={cat.id}>
                                         {cat.name}
                                     </option>
                                 ))}
                             </select>
-                            {errors.category && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.category}
-                                </p>
-                            )}
                         </div>
 
-                        {/* Brand */}
                         <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                            <label className="block mb-2 text-sm font-medium dark:text-gray-300">
                                 Brand
                             </label>
                             <input
@@ -164,272 +159,226 @@ function EditProduct({ categories = [], product = [] }) {
                                 name="brand"
                                 value={data.brand}
                                 onChange={handleChange}
-                                className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                                placeholder="e.g. Apple"
+                                className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg dark:text-white"
                             />
                         </div>
 
-                        {/* Quick View */}
-                        <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Quick View
+                        <div className="col-span-2">
+                            <label className="block mb-2 text-sm font-medium dark:text-gray-300">
+                                Quick View / Key Features
                             </label>
-                            <textarea
-                                name="quick_view"
-                                rows="6"
+                            <TiptapEditor
                                 value={data.quick_view}
-                                onChange={handleChange}
-                                className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                                placeholder="1.6GHz Quad-Core Processor, 8GB RAM, 256GB SSD"
+                                onChange={(html) => setData("quick_view", html)}
+                                placeholder="Add key features..."
                             />
                         </div>
+                    </div>
+                </div>
 
-                        {/* Price */}
+                {/* Media Section */}
+                <div className="bg-white dark:bg-slate-950 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                        Product Media
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Price ($)
+                            <label className="block mb-2 text-sm font-medium dark:text-gray-300">
+                                Main Thumbnail
+                            </label>
+                            <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-slate-900 flex flex-col items-center justify-center min-h-[200px]">
+                                <img
+                                    src={
+                                        previewImage ||
+                                        `/storage/${product.image}`
+                                    }
+                                    className="h-40 mx-auto object-contain rounded mb-2"
+                                    alt="Thumbnail"
+                                />
+                                <p className="text-xs text-blue-500 font-medium cursor-pointer">
+                                    Click to Change Image
+                                </p>
+                                <input
+                                    type="file"
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                    onChange={handleImageChange}
+                                    accept="image/*"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block mb-2 text-sm font-medium dark:text-gray-300">
+                                Add Gallery Images
+                            </label>
+                            <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-slate-900 flex flex-col items-center justify-center min-h-[200px]">
+                                <FiPlus className="w-10 h-10 text-gray-400 mb-2" />
+                                <input
+                                    type="file"
+                                    multiple
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                    onChange={handleGalleryChange}
+                                    accept="image/*"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Gallery Preview Area */}
+                    <div className="mt-6">
+                        <p className="text-sm font-medium mb-3 text-gray-700 dark:text-gray-400">
+                            Current Gallery Images
+                        </p>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 border dark:border-gray-800 p-4 rounded-lg">
+                            {/* 1. Existing Images from Database */}
+                            {product.images?.map((img) => (
+                                <div
+                                    key={img.id}
+                                    className="relative group aspect-square bg-gray-100 dark:bg-slate-900 rounded-md overflow-hidden"
+                                >
+                                    <img
+                                        src={`/storage/${img.image_path}`}
+                                        className="w-full h-full object-cover"
+                                        alt="Gallery"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            deleteExistingImage(img.id)
+                                        }
+                                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <FiX size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                            {/* 2. Newly Uploaded Previews */}
+                            {galleryPreviews.map((src, index) => (
+                                <div
+                                    key={index}
+                                    className="relative aspect-square bg-gray-100 dark:bg-slate-900 rounded-md overflow-hidden border-2 border-blue-500"
+                                >
+                                    <img
+                                        src={src}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            removeNewGalleryImage(index)
+                                        }
+                                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full"
+                                    >
+                                        <FiX size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tech & Tiptap Section */}
+                <div className="bg-white dark:bg-slate-950 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div>
+                            <label className="block mb-1 text-xs font-medium dark:text-gray-400">
+                                Price (TK)
                             </label>
                             <input
                                 type="number"
                                 name="price"
                                 value={data.price}
                                 onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.price
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
-                                placeholder="0.00"
+                                className="w-full p-2 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded text-sm dark:text-white"
                             />
-                            {errors.price && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.price}
-                                </p>
-                            )}
                         </div>
-
                         <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Discount(%)
+                            <label className="block mb-1 text-xs font-medium dark:text-gray-400">
+                                Discount (%)
                             </label>
                             <input
                                 type="number"
                                 name="discount"
                                 value={data.discount}
                                 onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.price
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
-                                placeholder="10"
+                                className="w-full p-2 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded text-sm dark:text-white"
                             />
-                            {errors.discount && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.discount}
-                                </p>
-                            )}
                         </div>
-
-                        {/* Stock */}
                         <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Stock Quantity
+                            <label className="block mb-1 text-xs font-medium dark:text-gray-400">
+                                Stock
                             </label>
                             <input
                                 type="number"
                                 name="stock"
                                 value={data.stock}
                                 onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.stock
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
-                                placeholder="0"
+                                className="w-full p-2 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded text-sm dark:text-white"
                             />
-                            {errors.stock && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.stock}
-                                </p>
-                            )}
                         </div>
-
                         <div>
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Bussiness Class
+                            <label className="block mb-1 text-xs font-medium dark:text-gray-400">
+                                Business Class
                             </label>
-
                             <select
                                 name="bussiness_class"
                                 value={data.bussiness_class}
                                 onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.bussiness_class
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
+                                className="w-full p-2 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded text-sm dark:text-white"
                             >
-                                <option value="">Select Class</option>
                                 <option value="free">Free</option>
                                 <option value="normal">Normal</option>
                                 <option value="medium">Medium</option>
                                 <option value="high">High</option>
                             </select>
-
-                            {errors.bussiness_class && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.bussiness_class}
-                                </p>
-                            )}
                         </div>
+                    </div>
 
-                        {/* Dimensions & Color (Optional) */}
-                        <div className="grid grid-cols-2 gap-4 col-span-1 md:col-span-2 border-t dark:border-gray-800 pt-4 mt-2">
-                            <div>
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                    Color
-                                </label>
-                                <input
-                                    type="text"
-                                    name="color"
-                                    value={data.color}
-                                    onChange={handleChange}
-                                    className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5"
-                                    placeholder="e.g Magenta"
-                                />
-                            </div>
-                            <div>
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                    Weight (kg)
-                                </label>
-                                <input
-                                    type="number"
-                                    name="weight"
-                                    value={data.weight}
-                                    onChange={handleChange}
-                                    className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5"
-                                    placeholder="1.3"
-                                />
-                            </div>
-                            <div>
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                    Length (cm)
-                                </label>
-                                <input
-                                    type="number"
-                                    name="length"
-                                    value={data.length}
-                                    onChange={handleChange}
-                                    className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5"
-                                    placeholder="24"
-                                />
-                            </div>
-                            <div>
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                    Width (cm)
-                                </label>
-                                <input
-                                    type="number"
-                                    name="width"
-                                    value={data.width}
-                                    onChange={handleChange}
-                                    className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5"
-                                    placeholder="23"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Details */}
-                        <div className="col-span-1 md:col-span-2">
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Product Details
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block mb-2 text-sm font-medium dark:text-gray-300">
+                                Technical Specifications
                             </label>
-                            <textarea
-                                name="productDetails"
-                                rows="6"
-                                value={data.productDetails}
-                                onChange={handleChange}
-                                className={`bg-gray-50 dark:bg-slate-900 border ${
-                                    errors.productDetails
-                                        ? "border-red-500"
-                                        : "border-gray-300"
-                                } dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
-                                placeholder="Write a description..."
+                            <TiptapEditor
+                                value={data.specification}
+                                onChange={(html) =>
+                                    setData("specification", html)
+                                }
+                                placeholder="Specifications..."
                             />
-                            {errors.productDetails && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.productDetails}
-                                </p>
-                            )}
                         </div>
-
-                        {/* Image Upload */}
-                        <div className="col-span-1 md:col-span-2">
-                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                Product Image
+                        <div>
+                            <label className="block mb-2 text-sm font-medium dark:text-gray-300">
+                                Full Product Details
                             </label>
-                            <div className="flex items-center justify-center w-full">
-                                <label
-                                    className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-slate-900 hover:bg-gray-100 dark:hover:bg-slate-800 ${
-                                        errors.image
-                                            ? "border-red-500"
-                                            : "border-gray-300 dark:border-gray-700"
-                                    }`}
-                                >
-                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        {previewImage ? (
-                                            <img
-                                                src={previewImage}
-                                                alt="Preview"
-                                                className="h-20 object-contain"
-                                            />
-                                        ) : (
-                                            <>
-                                                <FiUploadCloud className="w-8 h-8 rounded-sm mb-2 text-gray-500 dark:text-gray-400" />
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                    <span className="font-semibold">
-                                                        Click to upload
-                                                    </span>{" "}
-                                                    or drag and drop
-                                                </p>
-                                            </>
-                                        )}
-                                    </div>
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        onChange={handleImageChange}
-                                        accept="image/*"
-                                    />
-                                </label>
-                            </div>
-                            {errors.image && (
-                                <p className="mt-1 text-sm text-red-500">
-                                    {errors.image}
-                                </p>
-                            )}
+                            <TiptapEditor
+                                value={data.productDetails}
+                                onChange={(html) =>
+                                    setData("productDetails", html)
+                                }
+                                placeholder="Full description..."
+                            />
                         </div>
                     </div>
+                </div>
 
-                    {/* Footer / Buttons */}
-                    <div className="flex items-center justify-end gap-4 mt-8 pt-4 border-t border-gray-200 dark:border-gray-800">
-                        <Link
-                            href="/admin/products"
-                            className="text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none border border-gray-300 dark:border-gray-600"
-                        >
-                            Cancel
-                        </Link>
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 disabled:opacity-50"
-                        >
-                            {processing ? "Updating..." : "Update Product"}
-                        </button>
-                    </div>
-                </form>
-            </div>
+                {/* Submit */}
+                <div className="flex items-center justify-end gap-4 bg-gray-50 dark:bg-slate-900 p-4 rounded-lg border border-gray-200 dark:border-gray-800">
+                    <Link
+                        href="/admin/products"
+                        className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg"
+                    >
+                        Cancel
+                    </Link>
+                    <button
+                        type="submit"
+                        disabled={processing}
+                        className="px-8 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                        {processing ? "Updating..." : "Update Product"}
+                    </button>
+                </div>
+            </form>
         </div>
     );
 }
@@ -437,5 +386,4 @@ function EditProduct({ categories = [], product = [] }) {
 EditProduct.layout = (page) => (
     <AdminLayout children={page} title="Edit Product" />
 );
-
 export default EditProduct;

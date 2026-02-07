@@ -6,6 +6,7 @@
     <meta name="facebook-domain-verification" content="rq7mn5jdlxuul12lwlev3y881n6rq4" />
     @viteReactRefresh
     @vite(['resources/css/app.css', 'resources/js/app.jsx'])
+    
     @inertiaHead
 </head>
 <body>

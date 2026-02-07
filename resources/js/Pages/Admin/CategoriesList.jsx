@@ -5,11 +5,13 @@ import { FaSquarePlus } from "react-icons/fa6";
 import { PiSigmaBold } from "react-icons/pi";
 
 function CategoriesList({ categories = [] }) {
-    console.log(categories.data[0]);
     const { delete: destroy } = useForm();
+
     const handleDelete = (e, id) => {
         e.preventDefault();
-        destroy(`/admin/categories/${id}/delete`);
+        if (confirm("Are you sure you want to delete this category?")) {
+            destroy(`/admin/categories/${id}/delete`);
+        }
     };
 
     return (
@@ -32,6 +34,7 @@ function CategoriesList({ categories = [] }) {
                     Total = {categories.total}
                 </div>
             </div>
+
             <div className="w-full mt-4 overflow-x-auto">
                 <table
                     border="1"
@@ -41,6 +44,10 @@ function CategoriesList({ categories = [] }) {
                         <tr className="border-b">
                             <th className="text-left p-2 px-3 sm:p-3 sm:px-5 text-sm sm:text-base">
                                 ID
+                            </th>
+                            {/* New Column for Image */}
+                            <th className="text-left p-2 px-3 sm:p-3 sm:px-5 text-sm sm:text-base">
+                                Image
                             </th>
                             <th className="text-left p-2 px-3 sm:p-3 sm:px-5 text-sm sm:text-base">
                                 Category Name
@@ -60,9 +67,26 @@ function CategoriesList({ categories = [] }) {
                                     <td className="p-2 px-3 sm:p-3 sm:px-5 text-sm sm:text-base">
                                         {category.id}
                                     </td>
+
+                                    {/* Image Logic */}
+                                    <td className="p-2 px-3 sm:p-3 sm:px-5">
+                                        {category.photo ? (
+                                            <img
+                                                src={`/storage/${category.photo}`}
+                                                alt={category.name}
+                                                className="w-12 h-12 object-cover rounded border border-gray-300 dark:border-gray-600"
+                                            />
+                                        ) : (
+                                            <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 flex items-center justify-center rounded text-[10px] text-gray-500 dark:text-gray-300">
+                                                No Image
+                                            </div>
+                                        )}
+                                    </td>
+
                                     <td className="p-2 px-3 sm:p-3 sm:px-5 text-sm sm:text-base">
                                         {category.name}
                                     </td>
+
                                     <td className="p-2 px-3 sm:p-3 sm:px-5">
                                         <div className="flex justify-end gap-1 sm:gap-2">
                                             <Link
@@ -77,7 +101,10 @@ function CategoriesList({ categories = [] }) {
                                                     handleDelete(e, category.id)
                                                 }
                                             >
-                                                <button className="text-xs sm:text-sm bg-red-500 hover:bg-red-700 text-white py-1 px-1 sm:px-2 rounded">
+                                                <button
+                                                    type="submit"
+                                                    className="text-xs sm:text-sm bg-red-500 hover:bg-red-700 text-white py-1 px-1 sm:px-2 rounded"
+                                                >
                                                     Delete
                                                 </button>
                                             </form>
@@ -91,7 +118,7 @@ function CategoriesList({ categories = [] }) {
             </div>
 
             <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
-                <div className="dark:text-green-500   font-poppins font-bold">
+                <div className="dark:text-green-500 font-poppins font-bold">
                     Total {categories.total}
                 </div>
 
@@ -117,7 +144,9 @@ function CategoriesList({ categories = [] }) {
         </div>
     );
 }
+
 CategoriesList.layout = (page) => (
     <AdminLayout children={page} title="Categories" />
 );
+
 export default CategoriesList;

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Link, useForm } from "@inertiajs/react";
 import { FiArrowLeft, FiUploadCloud, FiX, FiPlus } from "react-icons/fi";
 import toast from "react-hot-toast";
+import TiptapEditor from "../../../components/AdminComponents/TiptapEditor";
 
 function ProductForm({ categories = [] }) {
     // 1. Setup useForm with 'gallery' array
@@ -20,6 +21,7 @@ function ProductForm({ categories = [] }) {
         width: "",
         bussiness_class: "",
         productDetails: "",
+        specification: "",
         discount: "",
         image: null, // Primary Image
         gallery: [], // Array for multiple images
@@ -234,6 +236,17 @@ function ProductForm({ categories = [] }) {
                             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
                                 Quick View / Key Features
                             </label>
+                            <TiptapEditor
+                                value={data.quick_view}
+                                onChange={(html) => setData("quick_view", html)}
+                                placeholder="Add key features with emojis and lists..."
+                            />
+                        </div>
+
+                        {/* <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                Quick View / Key Features
+                            </label>
                             <textarea
                                 name="quick_view"
                                 rows="3"
@@ -242,7 +255,7 @@ function ProductForm({ categories = [] }) {
                                 className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white"
                                 placeholder="Bullet points..."
                             ></textarea>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
 
@@ -413,8 +426,27 @@ function ProductForm({ categories = [] }) {
                             />
                         </div>
                     </div>
+                    <div className="my-6">
+                        <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                            Technical Specifications
+                        </label>
+                        <TiptapEditor
+                            value={data.specification}
+                            onChange={(html) => setData("specification", html)}
+                            placeholder="Enter technical specifications, dimensions, materials, etc."
+                        />
+                    </div>
 
                     <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                        Full Product Details
+                    </label>
+                    <TiptapEditor
+                        value={data.productDetails}
+                        onChange={(html) => setData("productDetails", html)}
+                        placeholder="Write full detailed description here..."
+                    />
+
+                    {/* <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
                         Full Product Details
                     </label>
                     <textarea
@@ -424,7 +456,7 @@ function ProductForm({ categories = [] }) {
                         onChange={handleChange}
                         className="w-full p-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white"
                         placeholder="Detailed specifications, warranty information, etc."
-                    ></textarea>
+                    ></textarea> */}
                 </div>
 
                 {/* Form Actions */}

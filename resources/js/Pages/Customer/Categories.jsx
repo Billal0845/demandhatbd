@@ -3,7 +3,7 @@ import { Link } from "@inertiajs/react";
 
 function Categories({ categories = [] }) {
     const sortedCategories = [...categories].sort((a, b) =>
-        a.name.localeCompare(b.name)
+        a.name.localeCompare(b.name),
     );
 
     return (
@@ -16,7 +16,7 @@ function Categories({ categories = [] }) {
         >
             <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
                 {/* Header */}
-                <div className="mb-4 text-center">
+                <div className="mb-8 text-center">
                     <h1 className="font-poppins text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white">
                         Explore Categories
                     </h1>
@@ -28,7 +28,7 @@ function Categories({ categories = [] }) {
 
                 {/* Categories Grid */}
                 {sortedCategories.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
                         {sortedCategories.map((category) => (
                             <Link
                                 key={category.id}
@@ -37,37 +37,49 @@ function Categories({ categories = [] }) {
                             >
                                 <div
                                     className="
-                                        h-full rounded-2xl p-5
+                                        h-full rounded-2xl p-6
                                         flex flex-col items-center justify-center text-center
                                         bg-white/90 dark:bg-gray-900/80
                                         backdrop-blur-xl
                                         border border-[#658C58] dark:border-green-500
                                         shadow-sm
                                         transition-all duration-300
-                                        hover:-translate-y-1 hover:shadow-xl
+                                        hover:-translate-y-2 hover:shadow-xl
                                     "
                                 >
-                                    {/* Icon */}
+                                    {/* Image or Initial Icon */}
                                     <div
                                         className="
-                                            mb-4 flex h-12 w-12 items-center justify-center rounded-full
+                                            mb-4 flex h-16 w-16 items-center justify-center rounded-full
+                                            overflow-hidden
                                             bg-[#658C58]
-                                            text-white font-bold text-lg
+                                            text-white font-bold text-xl
                                             shadow-md
                                             transition-transform duration-300
                                             group-hover:scale-110
                                         "
                                     >
-                                        {category.name.charAt(0)}
+                                        {category.photo ? (
+                                            <img
+                                                src={`/storage/${category.photo}`}
+                                                alt={category.name}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <span>
+                                                {category.name.charAt(0)}
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* Category Name */}
                                     <h3
                                         className="
-                                            font-inter font-semibold
+                                            font-inter font-semibold text-sm md:text-base
                                             text-gray-800 dark:text-gray-200
                                             transition-colors
                                             group-hover:text-[#658C58]
+                                            break-words w-full
                                         "
                                     >
                                         {category.name}

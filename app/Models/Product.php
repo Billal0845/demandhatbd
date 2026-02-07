@@ -21,6 +21,7 @@ class Product extends Model
         'price',
         'stock',
         'description',
+        'specification',
         'image',
         'quick_view',
         'short_description',

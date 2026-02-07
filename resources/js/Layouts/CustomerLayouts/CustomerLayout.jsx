@@ -36,9 +36,9 @@ export default function CustomerLayout({ children }) {
                 // because they are no longer used.
             />
 
-            <Link className="float-right bottom-16 p-2 shadow-lg hover:cursor-pointer hover:scale-110  bg-[#25d366] transition-all duration-200 text-gray-200 fixed rounded-full  right-4 z-[9999999] ">
+            {/* <Link className="float-right bottom-16 p-2 shadow-lg hover:cursor-pointer hover:scale-110  bg-[#25d366] transition-all duration-200 text-gray-200 fixed rounded-full  right-4 z-[9999999] ">
                 <FaWhatsapp size={30} className="  " />
-            </Link>
+            </Link> */}
 
             <main className="grow w-full">{children}</main>
 

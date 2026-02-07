@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class AdminProductController extends Controller
 {
@@ -56,9 +57,8 @@ class AdminProductController extends Controller
         return inertia('Admin/Product/ProductForm', ['categories' => $categories]);
     }
 
-    /**
-     * Store a newly created product in storage.
-     */
+
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -72,6 +72,7 @@ class AdminProductController extends Controller
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
             'productDetails' => 'required|string',
+            'specification' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072',
             'quick_view' => 'nullable|string',
             'short_description' => 'nullable|string',
@@ -81,55 +82,59 @@ class AdminProductController extends Controller
             'gallery.*' => 'image|mimes:jpeg,png,jpg,webp|max:3072',
         ]);
 
-        // 1. Handle Primary Image Upload
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('products', 'public');
-        }
+        return DB::transaction(function () use ($request, $validated) {
 
-        // 2. Advanced SKU Generation
-        $category = Category::find($validated['category']);
-        $categoryName = $category ? $category->name : 'GEN';
-        $prefix = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $categoryName), 0, 3));
-        $year = date('y');
-
-        do {
-            $random = strtoupper(Str::random(4));
-            $sku = "{$prefix}-{$year}-{$random}";
-        } while (Product::where('sku', $sku)->exists());
-
-        // 3. Create Product
-        $product = Product::create([
-            'name' => $validated['productName'],
-            'slug' => Str::slug($validated['productName']) . '-' . Str::random(4),
-            'category_id' => $validated['category'],
-            'sku' => $sku,
-            'brand' => $validated['brand'],
-            'color' => $validated['color'],
-            'weight' => $validated['weight'],
-            'length' => $validated['length'],
-            'width' => $validated['width'],
-            'price' => $validated['price'],
-            'stock' => $validated['stock'],
-            'description' => $validated['productDetails'],
-            'image' => $imagePath,
-            'quick_view' => $validated['quick_view'],
-            'short_description' => $validated['short_description'],
-            'bussiness_class' => $validated['bussiness_class'],
-            'discount' => $validated['discount'],
-        ]);
-
-        // 4. Handle Gallery Images Upload
-        if ($request->hasFile('gallery')) {
-            foreach ($request->file('gallery') as $file) {
-                $path = $file->store('products/gallery', 'public');
-                $product->images()->create([
-                    'image_path' => $path
-                ]);
+            // 1. Handle Primary Image Upload
+            $imagePath = null;
+            if ($request->hasFile('image')) {
+                $imagePath = $request->file('image')->store('products', 'public');
             }
-        }
 
-        return redirect()->to('/admin/products')->with('success', 'Product created successfully!');
+            // 2. Advanced SKU Generation
+            $category = Category::find($validated['category']);
+            $categoryName = $category ? $category->name : 'GEN';
+            $prefix = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $categoryName), 0, 3));
+            $year = date('y');
+
+            do {
+                $random = strtoupper(Str::random(4));
+                $sku = "{$prefix}-{$year}-{$random}";
+            } while (Product::where('sku', $sku)->exists());
+
+            // 3. Create Product
+            $product = Product::create([
+                'name' => $validated['productName'],
+                'slug' => Str::slug($validated['productName']) . '-' . Str::random(4),
+                'category_id' => $validated['category'],
+                'sku' => $sku,
+                'brand' => $validated['brand'],
+                'color' => $validated['color'],
+                'weight' => $validated['weight'],
+                'length' => $validated['length'],
+                'width' => $validated['width'],
+                'price' => $validated['price'],
+                'stock' => $validated['stock'],
+                'description' => $validated['productDetails'], // Tiptap HTML
+                'specification' => $validated['specification'],
+                'image' => $imagePath,
+                'quick_view' => $validated['quick_view'],       // Tiptap HTML
+                'short_description' => $validated['short_description'],
+                'bussiness_class' => $validated['bussiness_class'],
+                'discount' => $validated['discount'] ?? 0,
+            ]);
+
+            // 4. Handle Gallery Images Upload
+            if ($request->hasFile('gallery')) {
+                foreach ($request->file('gallery') as $file) {
+                    $path = $file->store('products/gallery', 'public');
+                    $product->images()->create([
+                        'image_path' => $path
+                    ]);
+                }
+            }
+
+            return redirect()->to('/admin/products')->with('success', 'Product created successfully!');
+        });
     }
 
     /**
@@ -144,6 +149,20 @@ class AdminProductController extends Controller
             'product' => $product,
             'categories' => $categories
         ]);
+    }
+
+    public function uploadEditorImage(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ]);
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products/description', 'public');
+            return response()->json(['url' => asset('storage/' . $path)]);
+        }
+
+        return response()->json(['error' => 'Upload failed'], 400);
     }
 
     /**
@@ -163,9 +182,10 @@ class AdminProductController extends Controller
             'width' => 'nullable|numeric',
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
-            'productDetails' => 'required|string',
+            'productDetails' => 'required|string', // New Tiptap HTML
+            'specification' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072',
-            'quick_view' => 'nullable|string',
+            'quick_view' => 'nullable|string',     // New Tiptap HTML
             'short_description' => 'nullable|string',
             'bussiness_class' => 'required|in:free,normal,medium,high',
             'discount' => 'nullable|numeric',
@@ -173,7 +193,16 @@ class AdminProductController extends Controller
             'gallery.*' => 'image|mimes:jpeg,png,jpg,webp|max:3072',
         ]);
 
-        // 1. Handle Primary Image Update (Deletes old file if new one uploaded)
+        // --- STEP 1: CLEANUP TIPTAP IMAGES ---
+        // We find images that were in the old text but are NOT in the new text
+        $this->cleanupUnusedEditorImages($product->description, $validated['productDetails']);
+        $this->cleanupUnusedEditorImages($product->quick_view, $validated['quick_view']);
+        $this->cleanupUnusedEditorImages($product->specification, $validated['specification']);
+
+        // In destroy()
+        $this->deleteImagesFromHtml($product->specification);
+
+        // --- STEP 2: PRIMARY IMAGE ---
         if ($request->hasFile('image')) {
             if ($product->image && Storage::disk('public')->exists($product->image)) {
                 Storage::disk('public')->delete($product->image);
@@ -181,22 +210,21 @@ class AdminProductController extends Controller
             $product->image = $request->file('image')->store('products', 'public');
         }
 
-        // 2. Handle Gallery Update (Appends new images)
+        // --- STEP 3: GALLERY ---
         if ($request->hasFile('gallery')) {
+            // If you want to REPLACe the whole gallery, uncomment the line below:
+            // $this->deleteOldGallery($product); 
+
             foreach ($request->file('gallery') as $file) {
                 $path = $file->store('products/gallery', 'public');
-                $product->images()->create([
-                    'image_path' => $path
-                ]);
+                $product->images()->create(['image_path' => $path]);
             }
         }
 
-        // 3. Handle Slug Update
         if ($product->name !== $validated['productName']) {
             $product->slug = Str::slug($validated['productName']) . '-' . Str::random(4);
         }
 
-        // 4. Update Other Fields
         $product->update([
             'name' => $validated['productName'],
             'category_id' => $validated['category'],
@@ -208,6 +236,7 @@ class AdminProductController extends Controller
             'price' => $validated['price'],
             'stock' => $validated['stock'],
             'description' => $validated['productDetails'],
+            'specification' => $validated['specification'],
             'quick_view' => $validated['quick_view'],
             'short_description' => $validated['short_description'],
             'bussiness_class' => $validated['bussiness_class'],
@@ -218,29 +247,97 @@ class AdminProductController extends Controller
     }
 
     /**
+     * Compare old and new HTML, delete images that were removed
+     */
+    private function cleanupUnusedEditorImages($oldHtml, $newHtml)
+    {
+        $oldImages = $this->extractImagePaths($oldHtml);
+        $newImages = $this->extractImagePaths($newHtml);
+
+        // Images that are in the old list but not in the new list
+        $imagesToDelete = array_diff($oldImages, $newImages);
+
+        foreach ($imagesToDelete as $path) {
+            if (Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+    }
+
+    /**
+     * Helper to get clean paths from <img> tags
+     */
+    private function extractImagePaths($html)
+    {
+        if (empty($html))
+            return [];
+        preg_match_all('/<img [^>]*src="([^"]+)"/i', $html, $matches);
+
+        $paths = [];
+        foreach ($matches[1] as $url) {
+            if (str_contains($url, '/storage/')) {
+                $paths[] = explode('/storage/', $url)[1];
+            }
+        }
+        return $paths;
+    }
+
+    /**
      * Remove the specified product from storage.
      */
     public function destroy(string $id)
     {
         $product = Product::with('images')->findOrFail($id);
 
-        // 1. Delete Primary Image from physical storage
+        // 1. Delete images found inside Tiptap HTML (Description & Quick View)
+        $this->deleteImagesFromHtml($product->description);
+        $this->deleteImagesFromHtml($product->quick_view);
+        $this->deleteImagesFromHtml($product->specification);
+
+        // 2. Delete Primary Image
         if ($product->image && Storage::disk('public')->exists($product->image)) {
             Storage::disk('public')->delete($product->image);
         }
 
-        // 2. Delete all Gallery Images from physical storage
+        // 3. Delete Gallery Images
         foreach ($product->images as $img) {
             if (Storage::disk('public')->exists($img->image_path)) {
                 Storage::disk('public')->delete($img->image_path);
             }
         }
 
-        // 3. Delete record from Database
-        // (Gallery records will be deleted if foreign key has onDelete('cascade'))
+        // 4. Delete the record from DB
         $product->delete();
 
-        return redirect()->back()->with('success', 'Product and associated images deleted successfully!');
+        return redirect()->back()->with('success', 'Product and all associated media deleted.');
+    }
+
+    /**
+     * Helper function to extract and delete images from HTML strings
+     */
+    private function deleteImagesFromHtml($html)
+    {
+        if (empty($html))
+            return;
+
+        // Use Regex to find all <img src="..."> tags
+        preg_match_all('/<img [^>]*src="([^"]+)"/i', $html, $matches);
+
+        $imageUrls = $matches[1] ?? [];
+
+        foreach ($imageUrls as $url) {
+            // We only want to delete images stored on our server
+            // Example URL: http://yoursite.com/storage/products/description/abc.jpg
+            if (str_contains($url, '/storage/')) {
+                // Get the path after "/storage/"
+                // Results in: products/description/abc.jpg
+                $path = explode('/storage/', $url)[1];
+
+                if (Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
+                }
+            }
+        }
     }
 
     /**

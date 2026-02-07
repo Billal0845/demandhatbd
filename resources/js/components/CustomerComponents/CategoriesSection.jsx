@@ -1,16 +1,14 @@
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "@inertiajs/react";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa6";
-import { IoIosArrowRoundBack } from "react-icons/io";
 
 function CategoriesSection({ categoriesComing, sectionName }) {
     const [categories, setCategories] = useState(categoriesComing || []);
-
     const [slide, setSlide] = useState(0);
 
     const nextSlide = () => {
-        if (categories.length - 8 === slide) return false;
+        if (categories.length - 8 <= slide) return false;
         setSlide(slide + 3);
     };
 
@@ -20,20 +18,19 @@ function CategoriesSection({ categoriesComing, sectionName }) {
     };
 
     return (
-        <div className="bg-white mt-1 dark:bg-[#0F1A0D] py-5  px-4 ">
+        <div className="bg-white mt-1 dark:bg-[#0F1A0D] py-5 px-4 ">
             <div className="max-w-[1200px] mx-auto">
-                <div className="flex my-3 items-center mx-auto  justify-between">
+                <div className="flex my-3 items-center mx-auto justify-between">
                     <div className="font-bold font-poppins text-xl dark:text-gray-200 md:text-2xl text-gray-800">
                         Top Categories
                     </div>
                     <Link
                         href={"/categories"}
-                        className="sm:hidden px-1 text-gray-900 hover:cursor-pointer bg-gray-200 p-2 rounded  hover:bg-green-700 hover:text-white"
+                        className="sm:hidden px-1 text-gray-900 hover:cursor-pointer bg-gray-200 p-2 rounded hover:bg-green-700 hover:text-white"
                     >
                         View All
                     </Link>
 
-                    {/* Hide arrows on mobile, show on desktop */}
                     <div className="hidden md:flex">
                         <div
                             onClick={prevSlide}
@@ -50,37 +47,26 @@ function CategoriesSection({ categoriesComing, sectionName }) {
 
                         <Link
                             href={"/categories"}
-                            className="px-2 py-1 text-gray-900 hover:cursor-pointer bg-gray-200  rounded  hover:bg-green-700 hover:text-white"
+                            className="px-2 py-1 text-gray-900 hover:cursor-pointer bg-gray-200 rounded hover:bg-green-700 hover:text-white"
                         >
                             View All
                         </Link>
                     </div>
                 </div>
 
-                {/* Mobile: Native Scroll, Desktop: Transform Slider */}
-                <div className="flex overflow-x-auto md:overflow-hidden  gap-4 md:gap-10 scrollbar-hide">
+                <div className="flex overflow-x-auto md:overflow-hidden gap-4 md:gap-10 scrollbar-hide">
                     {categories.map((cat, index) => {
                         return (
                             <div
                                 key={index}
-                                className="w-[100px] my-4  md:w-[120px] shrink-0 duration-500"
+                                className="w-[100px] my-4 md:w-[120px] shrink-0 duration-500"
                                 style={{
-                                    // Only apply transform on medium screens and up
                                     transform: `translateX(-${slide * 100}%)`,
                                 }}
                             >
-                                {/* <img
-                                src={
-                                    "http://localhost:3000/images/" + cat.image
-                                }
-                                alt={cat.path}
-                                className="w-full object-cover"
-                            /> */}
-
                                 <Link
-                                    key={cat.id}
                                     href={`category/${cat.id}`}
-                                    className="group w-full object-cover  my-5"
+                                    className="group w-full object-cover my-5"
                                 >
                                     <div
                                         className="
@@ -89,16 +75,16 @@ function CategoriesSection({ categoriesComing, sectionName }) {
                                         bg-white/90 dark:bg-gray-900/80
                                         border border-green-600 dark:border-gray-600
                                         backdrop-blur-xl
-                                        
                                         shadow-sm
                                         transition-all duration-300
                                         hover:-translate-y-1 hover:shadow-xl
                                     "
                                     >
-                                        {/* Icon */}
+                                        {/* IMAGE OR FALLBACK ICON */}
                                         <div
                                             className="
-                                            mb-2 flex h-12 w-12  items-center justify-center rounded-full
+                                            mb-2 flex h-16 w-16 items-center justify-center rounded-full
+                                            overflow-hidden
                                             bg-[#658C58]
                                             text-white font-bold text-lg
                                             shadow-md
@@ -106,16 +92,26 @@ function CategoriesSection({ categoriesComing, sectionName }) {
                                             group-hover:scale-110 
                                         "
                                         >
-                                            {cat.name.charAt(0)}
+                                            {cat.photo ? (
+                                                <img
+                                                    src={`/storage/${cat.photo}`}
+                                                    alt={cat.name}
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            ) : (
+                                                <span>
+                                                    {cat.name.charAt(0)}
+                                                </span>
+                                            )}
                                         </div>
 
-                                        {/* Category Name */}
                                         <h3
                                             className="
-                                            font-inter font-semibold
+                                            font-inter font-semibold text-sm
                                             text-gray-800 dark:text-gray-200
                                             transition-colors 
                                             group-hover:text-[#658C58]
+                                             w-full overflow-hidden
                                         "
                                         >
                                             {cat?.name}
@@ -127,7 +123,7 @@ function CategoriesSection({ categoriesComing, sectionName }) {
                     })}
                 </div>
             </div>
-            <div className=" font-poppins font-medium p-1">
+            <div className="md:hidden font-poppins font-medium p-1 text-sm text-gray-500">
                 Swipe Horizontally...
             </div>
         </div>

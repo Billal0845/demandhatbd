@@ -115,6 +115,7 @@ Route::middleware('auth')->group(function () {
 
     // 3. Product Management
     Route::resource('/admin/products', AdminProductController::class);
+    Route::post('/admin/upload-editor-image', [AdminProductController::class, 'uploadEditorImage']);
 
     // 4. Category Management
     Route::prefix('admin/categories')->group(function () {

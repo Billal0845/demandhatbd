@@ -16,7 +16,7 @@ const Checkout = ({ cartItems = [], totals = {}, auth }) => {
         email: auth.user?.email || "",
         phone: auth.user?.phone || "",
         address: auth.user?.address || "",
-        delivery_area: "",
+        delivery_area: "outside_dhaka",
         payment_method: "cod",
     });
 
