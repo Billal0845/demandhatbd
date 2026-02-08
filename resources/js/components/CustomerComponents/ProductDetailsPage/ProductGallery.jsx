@@ -6,15 +6,31 @@ const ProductGallery = ({
     setSelectedImage,
     discountPercentage,
 }) => {
-    // Helper to extract path regardless of data format
+    /**
+     * Helper to extract the image path string.
+     * Logic:
+     * 1. If img is an object (from ProductImage model), return the 'image_path' property.
+     * 2. If img is a string, return the string itself.
+     */
     const getImagePath = (img) => {
         if (!img) return "";
-        // If img is an object {image_path: '...'}, return that. If it's just a string, return the string.
-        return typeof img === "object" ? img.image_path : img;
+        if (typeof img === "object") return img.image_path;
+        return img;
     };
+
+    /**
+     * Professional Fix for the "/storage/0" error:
+     * Sometimes Inertia/Laravel sends the gallery as an Object { "0": {...}, "1": {...} }
+     * instead of a standard Array [ {...}, {...} ].
+     * This forces it into a clean array.
+     */
+    const galleryItems = Array.isArray(product.images)
+        ? product.images
+        : Object.values(product.images || {});
 
     return (
         <div className="flex flex-col gap-4">
+            {/* Main Featured Image */}
             <div className="relative group">
                 <div className="relative overflow-hidden rounded-2xl border border-green-700 dark:border-[#374151] bg-gray-100 dark:bg-[#1F2937] aspect-square shadow-lg">
                     {discountPercentage > 0 && (
@@ -23,10 +39,19 @@ const ProductGallery = ({
                         </div>
                     )}
 
+                    {/* We prepend /storage/ to the path */}
                     <img
                         className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-500"
-                        src={`/storage/${selectedImage}`}
+                        src={
+                            selectedImage
+                                ? `/storage/${selectedImage}`
+                                : "/placeholder.png"
+                        }
                         alt={product.name}
+                        onError={(e) => {
+                            e.target.src =
+                                "https://placehold.co/600x600?text=Image+Not+Found";
+                        }}
                     />
 
                     {product.stock <= 0 && (
@@ -39,31 +64,40 @@ const ProductGallery = ({
                 </div>
             </div>
 
-            {/* Gallery Thumbnails */}
-            {product.images && product.images.length > 0 && (
+            {/* Gallery Thumbnails Section */}
+            {(product.image || galleryItems.length > 0) && (
                 <div className="flex flex-wrap gap-2 sm:gap-3">
-                    {/* Main Image Thumbnail */}
-                    <button
-                        onClick={() => setSelectedImage(product.image)}
-                        className={`w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                            selectedImage === product.image
-                                ? "border-green-600 scale-105 shadow-md"
-                                : "border-gray-200 dark:border-gray-700 opacity-70 hover:opacity-100"
-                        }`}
-                    >
-                        <img
-                            src={`/storage/${product.image}`}
-                            className="w-full h-full object-cover"
-                            alt="main-thumb"
-                        />
-                    </button>
+                    {/* 1. Main Thumbnail (Always show the primary image first) */}
+                    {product.image && (
+                        <button
+                            onClick={() => setSelectedImage(product.image)}
+                            className={`w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                                selectedImage === product.image
+                                    ? "border-green-600 scale-105 shadow-md"
+                                    : "border-gray-200 dark:border-gray-700 opacity-70 hover:opacity-100"
+                            }`}
+                        >
+                            <img
+                                src={`/storage/${product.image}`}
+                                className="w-full h-full object-cover"
+                                alt="main-thumbnail"
+                            />
+                        </button>
+                    )}
 
-                    {/* Additional Images Loop */}
-                    {product.images.map((img, index) => {
+                    {/* 2. Additional Gallery Images Loop */}
+                    {galleryItems.map((img, index) => {
                         const path = getImagePath(img);
+
+                        // CRITICAL PROTECTION:
+                        // If path is missing, or is literally "0" (the index bug), skip rendering this thumbnail.
+                        if (!path || path === "0" || typeof path === "number") {
+                            return null;
+                        }
+
                         return (
                             <button
-                                key={index}
+                                key={`gallery-${index}`}
                                 onClick={() => setSelectedImage(path)}
                                 className={`w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all ${
                                     selectedImage === path
@@ -74,12 +108,11 @@ const ProductGallery = ({
                                 <img
                                     src={`/storage/${path}`}
                                     className="w-full h-full object-cover"
-                                    alt={`gallery-${index}`}
+                                    alt={`gallery-thumb-${index}`}
                                     onError={(e) => {
-                                        console.log(
-                                            "Failed to load image at:",
-                                            path,
-                                        );
+                                        // If specific thumbnail fails, show a placeholder
+                                        e.target.src =
+                                            "https://placehold.co/100x100?text=Error";
                                     }}
                                 />
                             </button>
